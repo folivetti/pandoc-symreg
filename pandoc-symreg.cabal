@@ -6,12 +6,12 @@ cabal-version: 1.12
 
 name:           pandoc-symreg
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/pandoc-symreg#readme>
-homepage:       https://github.com/githubuser/pandoc-symreg#readme
-bug-reports:    https://github.com/githubuser/pandoc-symreg/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2023 Author name here
+description:    Please see the README on GitHub at <https://github.com/folivetti/pandoc-symreg#readme>
+homepage:       https://github.com/folivetti/pandoc-symreg#readme
+bug-reports:    https://github.com/folivetti/pandoc-symreg/issues
+author:         Fabricio Olivetti de França
+maintainer:     fabricio.olivetti@gmail.com
+copyright:      2023 Fabricio Olivetti de França
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -25,7 +25,7 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+      PandocSR
   other-modules:
       Paths_pandoc_symreg
   hs-source-dirs:
@@ -33,6 +33,8 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , optparse-applicative
+    , parsec
   default-language: Haskell2010
 
 executable pandoc-symreg-exe
@@ -44,7 +46,9 @@ executable pandoc-symreg-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , optparse-applicative
     , pandoc-symreg
+    , parsec
   default-language: Haskell2010
 
 test-suite pandoc-symreg-test
@@ -57,5 +61,7 @@ test-suite pandoc-symreg-test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , optparse-applicative
     , pandoc-symreg
+    , parsec
   default-language: Haskell2010

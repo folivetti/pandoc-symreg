@@ -1,4 +1,4 @@
-module Lib
+module PandocSR
     ( someFunc
     ) where
 
