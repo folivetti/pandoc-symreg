@@ -3,18 +3,7 @@ module Main (main) where
 import Options.Applicative
 import Data.Char ( toLower )
 import Data.List ( intercalate )
-import PandocSR
-
-data SRAlgs = TIR | HL | Bingo deriving (Show, Enum, Bounded)
-data Output = Python | Math deriving (Show, Enum, Bounded)
-
-envelope :: a -> [a] -> [a]
-envelope c xs = c : xs <> [c]
-
-sralgsHelp :: [String]
-sralgsHelp = map (envelope '\'' . map toLower . show) [toEnum 0 :: SRAlgs ..]
-outHelp :: [String]
-outHelp = map (envelope '\'' . map toLower . show) [toEnum 0 :: Output ..]
+import PandocSR ( SRAlgs(..), parseSR, Output(..), sralgsHelp, outHelp )
 
 left :: a -> String -> Either a b
 left = pure . Left
@@ -76,7 +65,9 @@ opt = Args
 main :: IO ()
 main = do
   args <- execParser opts
+  content <- lines <$> readFile (infile args)
   print args
+  print $ parseSR (from args) (content !! 0)
   where 
       opts = info (opt <**> helper)
             ( fullDesc <> progDesc "Convert different symbolic expressions format to common formats."
