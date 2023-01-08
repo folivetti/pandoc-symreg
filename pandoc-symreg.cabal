@@ -32,10 +32,11 @@ library
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -fno-warn-unused-do-bind
   build-depends:
-      base >=4.7 && <5
+      attoparsec
+    , attoparsec-expr
+    , base >=4.7 && <5
+    , bytestring
     , optparse-applicative
-    , parsec
-    , parsec-numbers
     , srtree
   default-language: Haskell2010
 
@@ -47,11 +48,12 @@ executable pandoc-symreg-exe
       app
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -fno-warn-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      attoparsec
+    , attoparsec-expr
+    , base >=4.7 && <5
+    , bytestring
     , optparse-applicative
     , pandoc-symreg
-    , parsec
-    , parsec-numbers
     , srtree
   default-language: Haskell2010
 
@@ -64,10 +66,11 @@ test-suite pandoc-symreg-test
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -fno-warn-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      attoparsec
+    , attoparsec-expr
+    , base >=4.7 && <5
+    , bytestring
     , optparse-applicative
     , pandoc-symreg
-    , parsec
-    , parsec-numbers
     , srtree
   default-language: Haskell2010

@@ -1,27 +1,17 @@
 {-# language OverloadedStrings #-}
 module PandocSR where
 
-import Text.Parsec
-import Text.Parsec.Expr ( buildExpressionParser, Assoc(..), Operator(..), OperatorTable )
-import Text.Parsec.Token hiding ( decimal )
-import Text.Parsec.Language ( emptyDef )
-import Text.ParserCombinators.Parsec.Number ( floating, sign, decimal )
-import Control.Monad ( ap )
-import Data.Char ( toLower )
-import Data.Functor.Identity ( Identity )
+import Data.Attoparsec.ByteString.Char8
+import Data.Attoparsec.Expr
+import qualified Data.ByteString.Char8 as B
 import Data.SRTree
+import Control.Applicative ( (<|>) )
+import Data.Char ( toLower )
 
-type TextTyp   = String
-type Parser    = Parsec TextTyp ()
-type ParserSR  = Parser (SRTree Int Double)
-type Op a      = Operator TextTyp () Identity a
-type OpTable a = OperatorTable TextTyp () Identity a
+type ParseTree = Parser (SRTree Int Double)
 
 data SRAlgs = TIR | HL | Bingo deriving (Show, Enum, Bounded)
 data Output = Python | Math deriving (Show, Enum, Bounded)
-
-lexer :: TokenParser ()
-lexer = makeTokenParser emptyDef{ reservedOpNames = [" + ", " * ", " - ", " / "] }
 
 envelope :: a -> [a] -> [a]
 envelope c xs = c : xs <> [c]
@@ -31,46 +21,62 @@ sralgsHelp = map (envelope '\'' . map toLower . show) [toEnum 0 :: SRAlgs ..]
 outHelp :: [String]
 outHelp = map (envelope '\'' . map toLower . show) [toEnum 0 :: Output ..]
 
+binary :: B.ByteString -> (a -> a -> a) -> Assoc -> Operator B.ByteString a
+binary name fun  = Infix (do{ string name; pure fun })
 
-binary :: TextTyp -> (a -> a -> a) -> Assoc -> Op a
-binary  name fun = Infix (do{ reservedOp lexer name; return fun })
-prefix :: TextTyp -> (a -> a) -> Op a
-prefix  name fun       = Prefix (do{ reservedOp lexer name; return fun })
-postfix :: TextTyp -> (a -> a) -> Op a
-postfix name fun       = Postfix (do{ reservedOp lexer name; return fun })
+prefix :: B.ByteString -> (a -> a) -> Operator B.ByteString a
+prefix  name fun = Prefix (do{ string name; pure fun })
 
---parens :: Parser a -> Parser a
---parens e = do{ string "("; e' <- e; string ")"; pure e' } <?> "parens"
+parens :: Parser a -> Parser a
+parens e = do{ string "("; e' <- e; string ")"; pure e' } <?> "parens"
 
-parseExpr :: OpTable (SRTree Int Double) -> ParserSR -> [(String, Int)] -> ParserSR
-parseExpr table var header = do 
-    whiteSpace lexer
-    ex <- expr
-    eof
-    pure ex
+parseExpr :: [[Operator B.ByteString (SRTree Int Double)]] -> ParseTree -> [(B.ByteString, Int)] -> ParseTree
+parseExpr table var header = expr
   where
-    term  = parens lexer expr <|> coef <|> varC <?> "term"
+    term  = parens expr <|> coef <|> varC <?> "term"
     expr  = buildExpressionParser table term
-    coef = Const <$> ap sign floating <?> "const"
+    coef = Const <$> (constF <|> signed double) <?> "const"
+    constF = do { x <- signed double; char 'f'; pure x }
     varC = if null header
              then var
              else var <|> varH
     varH = choice $ map (uncurry getParserVar) header
-    getParserVar :: TextTyp -> Int -> ParserSR
     getParserVar k v = do string k <|> enveloped k
                           pure $ Var v
-    enveloped :: TextTyp -> Parser TextTyp
     enveloped s = (char ' ' <|> char '(') >> string s >> (char ' ' <|> char ')') >> pure ""
 
-parseHL :: ParserSR
-parseHL = parseExpr table var [("r",0), ("p_d", 1), ("x", 2), ("epsilon", 3), ("y", 4), ("z", 5)]
+parseHL :: [(B.ByteString, Int)] -> ParseTree
+parseHL = parseExpr table var
   where
-    table = [ [prefix "logabs" (log.abs), prefix "sqrtabs" (sqrt.abs), prefix "log" log, prefix "sqrt" sqrt, prefix "exp" exp, prefix "abs" abs, prefix "sin" sin, prefix "cos" cos, prefix "sqr" (**2), prefix "cube" (**3), prefix "cbrt" (Fun Cbrt)]
-            , [binary " * " (*) AssocLeft, binary " / " (/) AssocRight]
+    table = [ [prefix "sqr" (**2), prefix "cube" (**3)]
+            , [prefix "cbrt" (Fun Cbrt)]
+            , [prefix "logabs" (log.abs), prefix "sqrtabs" (sqrt.abs), prefix "log" log, prefix "sqrt" sqrt, prefix "exp" exp, prefix "abs" abs, prefix "sin" sin, prefix "cos" cos]
+            , [binary " * " (*) AssocLeft, binary " / " (/) AssocLeft]
             , [binary " + " (+) AssocLeft, binary " - " (-) AssocLeft]
             ]
     var = char 'x' >> Var <$> decimal <?> "var"
 
-parseSR :: SRAlgs -> TextTyp -> Either ParseError (SRTree Int Double)
-parseSR HL = runParser parseHL () "HeuristicLab" 
+parseBingo :: [(B.ByteString, Int)] -> ParseTree
+parseBingo = parseExpr table var
+  where
+    table = [ [prefix "sqr" (**2), prefix "cube" (**3)]
+            , [prefix "cbrt" (Fun Cbrt)]
+            , [prefix "log" log, prefix "exp" exp]
+            , [prefix "abs" abs, prefix "sqrt" sqrt]
+            , [prefix "sin" sin, prefix "cos" cos]
+            , [binary "^" Power AssocLeft]
+            , [binary "/" (/) AssocLeft, binary "" (*) AssocLeft]
+            , [binary " + " (+) AssocLeft, binary " - " (-) AssocLeft]
+            ]
+    var  = string "X_" >> Var <$> decimal <?> "var"
+
+enumerate :: [a] -> [(a, Int)]
+enumerate = (`zip` [0..])
+
+-- parseSR :: SRAlgs -> B.ByteString -> Result (SRTree Int Double)
+parseSR HL = eitherResult . parse (parseHL $ enumerate ["r", "p_d", "epsilon", "x", "y", "z"]) . putEOL
 parseSR _  = undefined
+
+putEOL :: B.ByteString -> B.ByteString
+putEOL bs | B.last bs == '\n' = bs
+          | otherwise         = B.snoc bs '\n'

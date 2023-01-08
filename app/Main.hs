@@ -1,6 +1,7 @@
 module Main (main) where
 
 import Options.Applicative
+import qualified Data.ByteString.Char8 as B
 import Data.Char ( toLower )
 import Data.List ( intercalate )
 import PandocSR ( SRAlgs(..), parseSR, Output(..), sralgsHelp, outHelp )
@@ -65,9 +66,9 @@ opt = Args
 main :: IO ()
 main = do
   args <- execParser opts
-  content <- lines <$> readFile (infile args)
+  content <- B.lines <$> B.readFile (infile args)
   print args
-  print $ parseSR (from args) (content !! 0)
+  mapM_ (print . parseSR (from args)) content -- $ B.snoc (content !! 0) '\n'
   where 
       opts = info (opt <**> helper)
             ( fullDesc <> progDesc "Convert different symbolic expressions format to common formats."

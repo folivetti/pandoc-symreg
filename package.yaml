@@ -21,8 +21,9 @@ description:         Please see the README on GitHub at <https://github.com/foli
 
 dependencies:
 - base >= 4.7 && < 5
-- parsec
-- parsec-numbers
+- bytestring
+- attoparsec
+- attoparsec-expr
 - optparse-applicative
 - srtree
 
