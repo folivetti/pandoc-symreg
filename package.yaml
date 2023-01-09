@@ -25,6 +25,7 @@ dependencies:
 - attoparsec
 - attoparsec-expr
 - optparse-applicative
+- mtl
 - srtree
 
 ghc-options:

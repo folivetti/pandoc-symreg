@@ -44,6 +44,7 @@ data Args = Args
       , infile      :: String
       , outfile     :: String
       , varnames    :: String
+      , parameters  :: Bool
     } deriving Show
 
 opt :: Parser Args
@@ -79,13 +80,17 @@ opt = Args
        <> showDefault
        <> value ""
        <> help "Comma separated list of variables names. Empty list assumes the default of each algorithm (e.g, \"x,y,epsilon\")." )
+    <*> switch
+        ( long "parameters"
+        <> short 'p'
+        <> help "Convert floating point numbers to free parameters." )
 
 
-withInput :: String -> SRAlgs -> String -> IO [Either String (SRTree Int Double)]
-withInput fname sr hd = do
+withInput :: String -> SRAlgs -> String -> Bool -> IO [Either String (SRTree Int Double)]
+withInput fname sr hd param = do
   h <- if null fname then pure stdin else openFile fname ReadMode
   contents <- hGetLines h 
-  let myParser = parseSR sr (B.pack hd) . B.pack
+  let myParser = parseSR sr (B.pack hd) param . B.pack
       es = map myParser contents
   unless (null fname) $ hClose h
   pure es
@@ -116,7 +121,7 @@ hGetLines h = do
 main :: IO ()
 main = do
   args <- execParser opts
-  content <- withInput (infile args) (from args) (varnames args)
+  content <- withInput (infile args) (from args) (varnames args) (parameters args)
   withOutput (outfile args) (to args) content
   where 
       opts = info (opt <**> helper)

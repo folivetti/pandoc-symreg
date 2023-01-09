@@ -36,6 +36,7 @@ library
     , attoparsec-expr
     , base >=4.7 && <5
     , bytestring
+    , mtl
     , optparse-applicative
     , srtree
   default-language: Haskell2010
@@ -52,6 +53,7 @@ executable pandoc-symreg
     , attoparsec-expr
     , base >=4.7 && <5
     , bytestring
+    , mtl
     , optparse-applicative
     , pandoc-symreg
     , srtree
@@ -70,6 +72,7 @@ test-suite pandoc-symreg-test
     , attoparsec-expr
     , base >=4.7 && <5
     , bytestring
+    , mtl
     , optparse-applicative
     , pandoc-symreg
     , srtree
