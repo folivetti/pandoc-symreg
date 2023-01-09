@@ -1,11 +1,15 @@
+{-# LANGUAGE LambdaCase #-}
 module Main (main) where
 
 import System.IO
 import Options.Applicative
+import Control.Monad ( unless, forM_ )
 import qualified Data.ByteString.Char8 as B
 import Data.Char ( toLower )
 import Data.List ( intercalate )
 import PandocSR ( SRAlgs(..), parseSR, Output(..), sralgsHelp, outHelp )
+import Data.SRTree ( SRTree )
+import qualified Data.SRTree.Print as P
 
 left :: a -> String -> Either a b
 left = pure . Left
@@ -23,9 +27,20 @@ sralgsReader = do
         "operon" -> right Operon
         _     -> left $ "unknown algorithm. Available options are " <> intercalate "," sralgsHelp
 
+outputsReader :: ReadM Output
+outputsReader = do
+  sr <- str
+  eitherReader $
+      case map toLower sr of
+        "python" -> right Python
+        "math"  -> right Math
+        "tikz" -> right Tikz
+        "latex" -> right Latex
+        _     -> left $ "unknown output. Available options are " <> intercalate "," outHelp
+
 data Args = Args
     {   from        :: SRAlgs
-      , to          :: String
+      , to          :: Output
       , infile      :: String
       , outfile     :: String
       , varnames    :: String
@@ -38,7 +53,7 @@ opt = Args
        <> short 'f'
        <> metavar ("[" <> intercalate "|" sralgsHelp <> "]")
        <> help "Input expression format" )
-   <*> strOption
+   <*> option outputsReader
        ( long "to"
        <> short 't'
        <> metavar ("[" <> intercalate "|" outHelp <> "]")
@@ -63,37 +78,46 @@ opt = Args
        <> metavar "VARNAMES"
        <> showDefault
        <> value ""
-       <> help "Comma separated list of variables names. Empty list assumes the default of each algorithm (e.g, x0, x1)." )
+       <> help "Comma separated list of variables names. Empty list assumes the default of each algorithm (e.g, \"x,y,epsilon\")." )
 
-withInput "" sr header = do
-  print "ahoy"
-  let myParser = parseSR sr (B.pack header) . B.pack
-  process myParser stdin
-withInput fname sr header = do
-  print "ahoto"
-  let myParser = parseSR sr (B.pack header) . B.pack
-  h <- openFile fname ReadMode
-  es <- process myParser h
-  hClose h
+
+withInput :: String -> SRAlgs -> String -> IO [Either String (SRTree Int Double)]
+withInput fname sr hd = do
+  h <- if null fname then pure stdin else openFile fname ReadMode
+  contents <- hGetLines h 
+  let myParser = parseSR sr (B.pack hd) . B.pack
+      es = map myParser contents
+  unless (null fname) $ hClose h
   pure es
 
-process parser h = do
-    done <- isEOF
-    if done
-      then pure []
-      else do c <- hGetLine h
-              putStrLn c
-              let e = parser c
-              (e :) <$> process parser h
+withOutput :: String -> Output -> [Either String (SRTree Int Double)] -> IO ()
+withOutput fname output exprs = do
+  h <- if null fname then pure stdout else openFile fname WriteMode
+  forM_ exprs $ \case 
+                   Left  err -> hPutStrLn h $ "invalid expression: " <> err
+                   Right ex  -> hPutStrLn h (showOutput output ex)
+  unless (null fname) $ hClose h
+
+showOutput :: Output -> SRTree Int Double -> String
+showOutput Python = P.showPython
+showOutput Math   = P.showDefault
+showOutput Tikz   = P.showTikz
+showOutput Latex   = P.showLatex
+
+hGetLines :: Handle -> IO [String]
+hGetLines h = do
+  done <- hIsEOF h
+  if done
+    then return []
+    else do
+      line <- hGetLine h
+      (line :) <$> hGetLines h
 
 main :: IO ()
 main = do
   args <- execParser opts
-  -- content <- B.lines <$> B.readFile (infile args)
-  print args
-  -- mapM_ (print . parseSR (from args) (B.pack $ varnames args)) content
   content <- withInput (infile args) (from args) (varnames args)
-  mapM_ print content
+  withOutput (outfile args) (to args) content
   where 
       opts = info (opt <**> helper)
             ( fullDesc <> progDesc "Convert different symbolic expressions format to common formats."

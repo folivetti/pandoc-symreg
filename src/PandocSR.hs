@@ -1,5 +1,6 @@
 {-# language OverloadedStrings #-}
-module PandocSR where
+module PandocSR ( parseSR, SRAlgs(..), Output(..), sralgsHelp, outHelp ) 
+    where
 
 import Data.Attoparsec.ByteString.Char8
 import Data.Attoparsec.Expr
@@ -13,7 +14,7 @@ type ParseTree = Parser (SRTree Int Double)
 
 -- * Argument parsing helpers
 data SRAlgs = TIR | HL | Operon | Bingo deriving (Show, Enum, Bounded)
-data Output = Python | Math deriving (Show, Enum, Bounded)
+data Output = Python | Math | Tikz | Latex deriving (Show, Enum, Bounded)
 
 envelope :: a -> [a] -> [a]
 envelope c xs = c : xs <> [c]
@@ -61,7 +62,6 @@ parseSR HL header    = eitherResult . parse (parseHL $ splitHeader header) . put
 parseSR Bingo header = eitherResult . parse (parseBingo $ splitHeader header) . putEOL
 parseSR TIR header = eitherResult . parse (parseTIR $ splitHeader header) . putEOL
 parseSR Operon header = eitherResult . parse (parseOperon $ splitHeader header) . putEOL
-parseSR _  _         = undefined
 
 putEOL :: B.ByteString -> B.ByteString
 putEOL bs | B.last bs == '\n' = bs
@@ -105,7 +105,7 @@ parseTIR = parseExpr (prefixOps : binOps) binFuns var
                 ]
     binOps = [[binary "^" Power AssocLeft]
             , [binary " * " (*) AssocLeft, binary " / " (/) AssocLeft]
-            , [binary " + " (+) AssocLeft, binary " - " (-) AssocLeft]
+            , [binary " + " (+) AssocLeft]
             ]
     var = do char 'x'
              ix <- decimal

@@ -12,7 +12,7 @@ bug-reports:    https://github.com/folivetti/pandoc-symreg/issues
 author:         Fabricio Olivetti de França
 maintainer:     fabricio.olivetti@gmail.com
 copyright:      2023 Fabricio Olivetti de França
-license:        BSD3
+license:        GPL-3.0
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
@@ -40,7 +40,7 @@ library
     , srtree
   default-language: Haskell2010
 
-executable pandoc-symreg-exe
+executable pandoc-symreg
   main-is: Main.hs
   other-modules:
       Paths_pandoc_symreg

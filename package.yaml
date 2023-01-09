@@ -1,7 +1,7 @@
 name:                pandoc-symreg
 version:             0.1.0.0
 github:              "folivetti/pandoc-symreg"
-license:             BSD3
+license:             GPL-3.0
 author:              "Fabricio Olivetti de França"
 maintainer:          "fabricio.olivetti@gmail.com"
 copyright:           "2023 Fabricio Olivetti de França"
@@ -43,7 +43,7 @@ library:
   source-dirs: src
 
 executables:
-  pandoc-symreg-exe:
+  pandoc-symreg:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
