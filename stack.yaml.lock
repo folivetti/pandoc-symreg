@@ -5,15 +5,15 @@
 
 packages:
 - completed:
-    commit: 6e63ba966810824265284c4072864e2359e22db8
+    commit: a5a4450fc860f4cf43472394fe4988d66d660919
     git: https://github.com/folivetti/srtree.git
     name: srtree
     pantry-tree:
-      sha256: 5bc7a796b5f3e9cff43d8a7567f0c62052b246e41e157ea903cefba204562f86
+      sha256: b378f61fd26da3d74c72cd8869a0056354e57e5fafac5597622ad8612b114754
       size: 817
     version: 0.1.0.0
   original:
-    commit: 6e63ba966810824265284c4072864e2359e22db8
+    commit: a5a4450fc860f4cf43472394fe4988d66d660919
     git: https://github.com/folivetti/srtree.git
 snapshots:
 - completed:
