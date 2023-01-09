@@ -1,5 +1,6 @@
 module Main (main) where
 
+import System.IO
 import Options.Applicative
 import qualified Data.ByteString.Char8 as B
 import Data.Char ( toLower )
@@ -19,6 +20,7 @@ sralgsReader = do
         "tir" -> right TIR
         "hl"  -> right HL
         "bingo" -> right Bingo
+        "operon" -> right Operon
         _     -> left $ "unknown algorithm. Available options are " <> intercalate "," sralgsHelp
 
 data Args = Args
@@ -63,12 +65,35 @@ opt = Args
        <> value ""
        <> help "Comma separated list of variables names. Empty list assumes the default of each algorithm (e.g, x0, x1)." )
 
+withInput "" sr header = do
+  print "ahoy"
+  let myParser = parseSR sr (B.pack header) . B.pack
+  process myParser stdin
+withInput fname sr header = do
+  print "ahoto"
+  let myParser = parseSR sr (B.pack header) . B.pack
+  h <- openFile fname ReadMode
+  es <- process myParser h
+  hClose h
+  pure es
+
+process parser h = do
+    done <- isEOF
+    if done
+      then pure []
+      else do c <- hGetLine h
+              putStrLn c
+              let e = parser c
+              (e :) <$> process parser h
+
 main :: IO ()
 main = do
   args <- execParser opts
-  content <- B.lines <$> B.readFile (infile args)
+  -- content <- B.lines <$> B.readFile (infile args)
   print args
-  mapM_ (print . parseSR (from args)) content -- $ B.snoc (content !! 0) '\n'
+  -- mapM_ (print . parseSR (from args) (B.pack $ varnames args)) content
+  content <- withInput (infile args) (from args) (varnames args)
+  mapM_ print content
   where 
       opts = info (opt <**> helper)
             ( fullDesc <> progDesc "Convert different symbolic expressions format to common formats."
