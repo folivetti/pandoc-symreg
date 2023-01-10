@@ -1,42 +1,35 @@
-{-# LANGUAGE LambdaCase #-}
 module Main (main) where
 
-import System.IO
 import Options.Applicative
-import Control.Monad ( unless, forM_ )
-import qualified Data.ByteString.Char8 as B
-import Data.Char ( toLower )
-import Data.List ( intercalate )
-import PandocSR ( SRAlgs(..), parseSR, Output(..), sralgsHelp, outHelp )
-import Data.SRTree ( SRTree )
-import qualified Data.SRTree.Print as P
 
-left :: a -> String -> Either a b
-left = pure . Left
-right :: a1 -> String -> Either a2 a1
-right = pure . Right
+import Data.Char ( toLower, toUpper )
+import Text.Read ( readMaybe )
+import Data.List ( intercalate )
+import Text.ParseSR ( SRAlgs(..), Output(..) )
+import Text.ParseSR.IO ( withInput, withOutput )
+
+envelope :: a -> [a] -> [a]
+envelope c xs = c : xs <> [c]
+
+sralgsHelp :: [String]
+sralgsHelp = map (envelope '\'' . map toLower . show) [toEnum 0 :: SRAlgs ..]
+
+outHelp :: [String]
+outHelp = map (envelope '\'' . map toLower . show) [toEnum 0 :: Output ..]
 
 sralgsReader :: ReadM SRAlgs
 sralgsReader = do
-  sr <- str
-  eitherReader $
-      case map toLower sr of
-        "tir" -> right TIR
-        "hl"  -> right HL
-        "bingo" -> right Bingo
-        "operon" -> right Operon
-        _     -> left $ "unknown algorithm. Available options are " <> intercalate "," sralgsHelp
+  sr <- map toUpper <$> str
+  eitherReader $ case readMaybe sr of
+    Nothing -> pure . Left $ "unknown algorithm. Available options are " <> intercalate "," sralgsHelp
+    Just x  -> pure . Right $ x
 
 outputsReader :: ReadM Output
 outputsReader = do
-  sr <- str
-  eitherReader $
-      case map toLower sr of
-        "python" -> right Python
-        "math"  -> right Math
-        "tikz" -> right Tikz
-        "latex" -> right Latex
-        _     -> left $ "unknown output. Available options are " <> intercalate "," outHelp
+  sr <- map toUpper <$> str
+  eitherReader $ case readMaybe sr of
+    Nothing -> pure . Left $ "unknown output. Available options are " <> intercalate "," outHelp
+    Just x  -> pure . Right $ x
 
 data Args = Args
     {   from        :: SRAlgs
@@ -85,44 +78,11 @@ opt = Args
         <> short 'p'
         <> help "Convert floating point numbers to free parameters." )
 
-
-withInput :: String -> SRAlgs -> String -> Bool -> IO [Either String (SRTree Int Double)]
-withInput fname sr hd param = do
-  h <- if null fname then pure stdin else openFile fname ReadMode
-  contents <- hGetLines h 
-  let myParser = parseSR sr (B.pack hd) param . B.pack
-      es = map myParser contents
-  unless (null fname) $ hClose h
-  pure es
-
-withOutput :: String -> Output -> [Either String (SRTree Int Double)] -> IO ()
-withOutput fname output exprs = do
-  h <- if null fname then pure stdout else openFile fname WriteMode
-  forM_ exprs $ \case 
-                   Left  err -> hPutStrLn h $ "invalid expression: " <> err
-                   Right ex  -> hPutStrLn h (showOutput output ex)
-  unless (null fname) $ hClose h
-
-showOutput :: Output -> SRTree Int Double -> String
-showOutput Python = P.showPython
-showOutput Math   = P.showDefault
-showOutput Tikz   = P.showTikz
-showOutput Latex   = P.showLatex
-
-hGetLines :: Handle -> IO [String]
-hGetLines h = do
-  done <- hIsEOF h
-  if done
-    then return []
-    else do
-      line <- hGetLine h
-      (line :) <$> hGetLines h
-
 main :: IO ()
 main = do
   args <- execParser opts
-  content <- withInput (infile args) (from args) (varnames args) (parameters args)
-  withOutput (outfile args) (to args) content
+  withInput (infile args) (from args) (varnames args) (parameters args)
+    >>= withOutput (outfile args) (to args) 
   where 
       opts = info (opt <**> helper)
             ( fullDesc <> progDesc "Convert different symbolic expressions format to common formats."

@@ -1,0 +1,130 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# language LambdaCase #-}</span><span>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Text.ParseSR.IO</span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Text.ParseSR.IO.html#withInput"><span class="hs-identifier">withInput</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Text.ParseSR.IO.html#withOutput"><span class="hs-identifier">withOutput</span></a></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-3"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier">unless</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">forM_</span></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">System.IO</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Char8</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">B</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.SRTree</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Text.ParseSR.html"><span class="hs-identifier">Text.ParseSR</span></a></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Text.ParseSR.html#SRAlgs"><span class="hs-identifier">SRAlgs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Text.ParseSR.html#Output"><span class="hs-identifier">Output</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Text.ParseSR.html#parseSR"><span class="hs-identifier">parseSR</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Text.ParseSR.html#showOutput"><span class="hs-identifier">showOutput</span></a></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="annot"><a href="Text.ParseSR.IO.html#withInput"><span class="hs-identifier hs-type">withInput</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Text.ParseSR.html#SRAlgs"><span class="hs-identifier hs-type">SRAlgs</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">SRTree</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-12"></span><span id="withInput"><span class="annot"><span class="annottext">withInput :: String
+-&gt; SRAlgs
+-&gt; String
+-&gt; Bool
+-&gt; IO [Either String (SRTree Int Double)]
+</span><a href="Text.ParseSR.IO.html#withInput"><span class="hs-identifier hs-var hs-var">withInput</span></a></span></span><span> </span><span id="local-6989586621679049113"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679049113"><span class="hs-identifier hs-var">fname</span></a></span></span><span> </span><span id="local-6989586621679049112"><span class="annot"><span class="annottext">SRAlgs
+</span><a href="#local-6989586621679049112"><span class="hs-identifier hs-var">sr</span></a></span></span><span> </span><span id="local-6989586621679049111"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679049111"><span class="hs-identifier hs-var">hd</span></a></span></span><span> </span><span id="local-6989586621679049110"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679049110"><span class="hs-identifier hs-var">param</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-13"></span><span>  </span><span id="local-6989586621679049109"><span class="annot"><span class="annottext">Handle
+</span><a href="#local-6989586621679049109"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679049113"><span class="hs-identifier hs-var">fname</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Handle
+</span><span class="hs-identifier hs-var">stdin</span></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">String -&gt; IOMode -&gt; IO Handle
+</span><span class="hs-identifier hs-var">openFile</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679049113"><span class="hs-identifier hs-var">fname</span></a></span><span> </span><span class="annot"><span class="annottext">IOMode
+</span><span class="hs-identifier hs-var">ReadMode</span></span><span>
+</span><span id="line-14"></span><span>  </span><span id="local-6989586621679049104"><span class="annot"><span class="annottext">[String]
+</span><a href="#local-6989586621679049104"><span class="hs-identifier hs-var">contents</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Handle -&gt; IO [String]
+</span><a href="Text.ParseSR.IO.html#hGetLines"><span class="hs-identifier hs-var">hGetLines</span></a></span><span> </span><span class="annot"><span class="annottext">Handle
+</span><a href="#local-6989586621679049109"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679049102"><span class="annot"><span class="annottext">myParser :: String -&gt; Either String (SRTree Int Double)
+</span><a href="#local-6989586621679049102"><span class="hs-identifier hs-var hs-var">myParser</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SRAlgs
+-&gt; ByteString
+-&gt; Bool
+-&gt; ByteString
+-&gt; Either String (SRTree Int Double)
+</span><a href="Text.ParseSR.html#parseSR"><span class="hs-identifier hs-var">parseSR</span></a></span><span> </span><span class="annot"><span class="annottext">SRAlgs
+</span><a href="#local-6989586621679049112"><span class="hs-identifier hs-var">sr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; ByteString
+</span><span class="hs-identifier hs-var">B.pack</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679049111"><span class="hs-identifier hs-var">hd</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679049110"><span class="hs-identifier hs-var">param</span></a></span><span> </span><span class="annot"><span class="annottext">forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; ByteString
+</span><span class="hs-identifier hs-var">B.pack</span></span><span>
+</span><span id="line-16"></span><span>      </span><span id="local-6989586621679049099"><span class="annot"><span class="annottext">es :: [Either String (SRTree Int Double)]
+</span><a href="#local-6989586621679049099"><span class="hs-identifier hs-var hs-var">es</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Either String (SRTree Int Double)
+</span><a href="#local-6989586621679049102"><span class="hs-identifier hs-var">myParser</span></a></span><span> </span><span class="annot"><span class="annottext">[String]
+</span><a href="#local-6989586621679049104"><span class="hs-identifier hs-var">contents</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">unless</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679049113"><span class="hs-identifier hs-var">fname</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Handle -&gt; IO ()
+</span><span class="hs-identifier hs-var">hClose</span></span><span> </span><span class="annot"><span class="annottext">Handle
+</span><a href="#local-6989586621679049109"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">[Either String (SRTree Int Double)]
+</span><a href="#local-6989586621679049099"><span class="hs-identifier hs-var">es</span></a></span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="annot"><a href="Text.ParseSR.IO.html#withOutput"><span class="hs-identifier hs-type">withOutput</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Text.ParseSR.html#Output"><span class="hs-identifier hs-type">Output</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">SRTree</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span id="withOutput"><span class="annot"><span class="annottext">withOutput :: String -&gt; Output -&gt; [Either String (SRTree Int Double)] -&gt; IO ()
+</span><a href="Text.ParseSR.IO.html#withOutput"><span class="hs-identifier hs-var hs-var">withOutput</span></a></span></span><span> </span><span id="local-6989586621679049097"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679049097"><span class="hs-identifier hs-var">fname</span></a></span></span><span> </span><span id="local-6989586621679049096"><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679049096"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span id="local-6989586621679049095"><span class="annot"><span class="annottext">[Either String (SRTree Int Double)]
+</span><a href="#local-6989586621679049095"><span class="hs-identifier hs-var">exprs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-22"></span><span>  </span><span id="local-6989586621679049094"><span class="annot"><span class="annottext">Handle
+</span><a href="#local-6989586621679049094"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679049097"><span class="hs-identifier hs-var">fname</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Handle
+</span><span class="hs-identifier hs-var">stdout</span></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">String -&gt; IOMode -&gt; IO Handle
+</span><span class="hs-identifier hs-var">openFile</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679049097"><span class="hs-identifier hs-var">fname</span></a></span><span> </span><span class="annot"><span class="annottext">IOMode
+</span><span class="hs-identifier hs-var">WriteMode</span></span><span>
+</span><span id="line-23"></span><span>  </span><span class="annot"><span class="annottext">forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Foldable t, Monad m) =&gt;
+t a -&gt; (a -&gt; m b) -&gt; m ()
+</span><span class="hs-identifier hs-var">forM_</span></span><span> </span><span class="annot"><span class="annottext">[Either String (SRTree Int Double)]
+</span><a href="#local-6989586621679049095"><span class="hs-identifier hs-var">exprs</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span> </span><span>
+</span><span id="line-24"></span><span>                   </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span>  </span><span id="local-6989586621679049091"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679049091"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Handle -&gt; String -&gt; IO ()
+</span><span class="hs-identifier hs-var">hPutStrLn</span></span><span> </span><span class="annot"><span class="annottext">Handle
+</span><a href="#local-6989586621679049094"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;invalid expression: &quot;</span></span><span> </span><span class="annot"><span class="annottext">forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679049091"><span class="hs-identifier hs-var">err</span></a></span><span>
+</span><span id="line-25"></span><span>                   </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679049089"><span class="annot"><span class="annottext">SRTree Int Double
+</span><a href="#local-6989586621679049089"><span class="hs-identifier hs-var">ex</span></a></span></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Handle -&gt; String -&gt; IO ()
+</span><span class="hs-identifier hs-var">hPutStrLn</span></span><span> </span><span class="annot"><span class="annottext">Handle
+</span><a href="#local-6989586621679049094"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Output -&gt; SRTree Int Double -&gt; String
+</span><a href="Text.ParseSR.html#showOutput"><span class="hs-identifier hs-var">showOutput</span></a></span><span> </span><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679049096"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="annot"><span class="annottext">SRTree Int Double
+</span><a href="#local-6989586621679049089"><span class="hs-identifier hs-var">ex</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>  </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">unless</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679049097"><span class="hs-identifier hs-var">fname</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Handle -&gt; IO ()
+</span><span class="hs-identifier hs-var">hClose</span></span><span> </span><span class="annot"><span class="annottext">Handle
+</span><a href="#local-6989586621679049094"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="annot"><a href="Text.ParseSR.IO.html#hGetLines"><span class="hs-identifier hs-type">hGetLines</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Handle</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">]</span><span>
+</span><span id="line-29"></span><span id="hGetLines"><span class="annot"><span class="annottext">hGetLines :: Handle -&gt; IO [String]
+</span><a href="Text.ParseSR.IO.html#hGetLines"><span class="hs-identifier hs-var hs-var">hGetLines</span></a></span></span><span> </span><span id="local-6989586621679049088"><span class="annot"><span class="annottext">Handle
+</span><a href="#local-6989586621679049088"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-30"></span><span>  </span><span id="local-6989586621679049087"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679049087"><span class="hs-identifier hs-var">done</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Handle -&gt; IO Bool
+</span><span class="hs-identifier hs-var">hIsEOF</span></span><span> </span><span class="annot"><span class="annottext">Handle
+</span><a href="#local-6989586621679049088"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679049087"><span class="hs-identifier hs-var">done</span></a></span><span>
+</span><span id="line-32"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-33"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-34"></span><span>      </span><span id="local-6989586621679049085"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679049085"><span class="hs-identifier hs-var">line</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Handle -&gt; IO String
+</span><span class="hs-identifier hs-var">hGetLine</span></span><span> </span><span class="annot"><span class="annottext">Handle
+</span><a href="#local-6989586621679049088"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-35"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679049085"><span class="hs-identifier hs-var">line</span></a></span><span> </span><span class="hs-glyph">:</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Handle -&gt; IO [String]
+</span><a href="Text.ParseSR.IO.html#hGetLines"><span class="hs-identifier hs-var">hGetLines</span></a></span><span> </span><span class="annot"><span class="annottext">Handle
+</span><a href="#local-6989586621679049088"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-36"></span></pre></body></html>
