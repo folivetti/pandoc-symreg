@@ -8,6 +8,7 @@ import qualified Data.ByteString.Char8 as B
 import Control.Applicative ( (<|>) )
 import qualified Data.SRTree.Print as P
 
+import Debug.Trace ( trace )
 import Data.SRTree
 
 -- * Data types
@@ -34,10 +35,13 @@ showOutput LATEX  = P.showLatex
 
 -- | Calls the corresponding parser for a given `SRAlgs`
 parseSR :: SRAlgs -> B.ByteString -> Bool -> B.ByteString -> Either String (SRTree Int Double)
-parseSR HL     header param = eitherResult . parse (parseHL param $ splitHeader header) . putEOL
-parseSR BINGO  header param = eitherResult . parse (parseBingo param $ splitHeader header) . putEOL
-parseSR TIR    header param = eitherResult . parse (parseTIR param $ splitHeader header) . putEOL
-parseSR OPERON header param = eitherResult . parse (parseOperon param $ splitHeader header) . putEOL
+parseSR HL     header param = eitherResult . (`feed` "") . parse (parseHL param $ splitHeader header) . putEOL
+parseSR BINGO  header param = eitherResult . (`feed` "") . parse (parseBingo param $ splitHeader header) . putEOL
+parseSR TIR    header param = eitherResult . (`feed` "") . parse (parseTIR param $ splitHeader header) . putEOL
+parseSR OPERON header param = eitherResult . (`feed` "") . parse (parseOperon param $ splitHeader header) . putEOL
+
+eitherResult' :: Show r => Result r -> Either String r
+eitherResult' res = trace (show res) $ eitherResult res
 
 -- * Parsers
 
@@ -58,7 +62,9 @@ parens e = do{ string "("; e' <- e; string ")"; pure e' } <?> "parens"
 -- a parser `var` for variables, a boolean indicating whether to change floating point values to free
 -- parameters variables, and a list of variable names with their corresponding indexes.
 parseExpr :: [[Operator B.ByteString (SRTree Int Double)]] -> [ParseTree -> ParseTree] -> ParseTree -> Bool -> [(B.ByteString, Int)] -> ParseTree
-parseExpr table binFuns var param header = relabelParams <$> expr
+parseExpr table binFuns var param header = do e <- relabelParams <$> expr
+                                              many1' space
+                                              pure e
   where
     term  = parens expr <|> enclosedAbs expr <|> choice (map ($ expr) binFuns) <|> coef <|> varC <?> "term"
     expr  = buildExpressionParser table term
