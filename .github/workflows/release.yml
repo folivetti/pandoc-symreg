@@ -77,11 +77,9 @@ jobs:
           cabal install exe:pandoc-symreg --install-method=copy --overwrite-policy=always --installdir=dist
       - if: matrix.os == 'windows-latest'
         name: Set extension to .exe on Windows
-        #run: echo "::set-env name=EXT::.exe"
         run: echo "EXT=.exe" >> $GITHUB_ENV
 
       - name: Set binary path name
-        #run: echo "::set-env name=BINARY_PATH::./dist/pandoc-symreg${{ env.EXT }}"
         run: echo "BINARY_PATH=./dist/pandoc-symreg${{ env.EXT }}" >> $GITHUB_ENV
 
       - name: Compress binary
