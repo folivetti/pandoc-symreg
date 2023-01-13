@@ -34,6 +34,8 @@ This tool can be installed via [Cabal](https://www.haskell.org/cabal/) or [Stack
 - Clone this repository
 - Inside the project directory run the command `stack install`
 
+There are also binaries available at [releases](https://github.com/folivetti/pandoc-symreg/releases)
+
 ## Usage
 
 ```bash
