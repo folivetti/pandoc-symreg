@@ -1,7 +1,7 @@
 # pandoc-symreg: a pandoc-like tool to convert symbolic regression expressions to convenient formats.
 
 [![github
-release](https://img.shields.io/github/release/folivetti/pandoc-symreg.svg?label=current+release)](https://github.com/folivetti/pandoc-symreg/releases)
+release](https://img.shields.io/github/release/folivetti/pandoc-symreg.svg)](https://github.com/folivetti/pandoc-symreg/releases)
 [![hackage
 release](https://img.shields.io/hackage/v/pandoc-symreg.svg?label=hackage)](https://hackage.haskell.org/package/pandoc-symreg)
 [![stackage LTS
