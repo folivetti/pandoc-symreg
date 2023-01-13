@@ -40,24 +40,27 @@ There are also binaries available at [releases](https://github.com/folivetti/pan
 
 ```bash
 Usage: pandoc-symreg (-f|--from ['tir'|'hl'|'operon'|'bingo'])
-                     (-t|--to ['python'|'math'|'tikz']) [-i|--input INPUT] 
-                     [-o|--output OUTPUT] [-v|--varnames VARNAMES]
+                     (-t|--to ['python'|'math'|'tikz'|'latex']) 
+                     [-i|--input INPUT] [-o|--output OUTPUT] 
+                     [-v|--varnames VARNAMES] [-p|--parameters]
 
-  Convert different symbolic expressions format to common formats()().
+  Convert different symbolic expressions format to common formats.
 
 Available options:
   -f,--from ['tir'|'hl'|'operon'|'bingo']
                            Input expression format
-  -t,--to ['python'|'math'|'tikz']
+  -t,--to ['python'|'math'|'tikz'|'latex']
                            Output expression format
   -i,--input INPUT         Input file containing expressions. Empty string gets
                            expression from stdin. (default: "")
   -o,--output OUTPUT       Output file to store expressions. Empty string prints
                            expressions to stdout. (default: "")
   -v,--varnames VARNAMES   Comma separated list of variables names. Empty list
-                           assumes the default of each algorithm (e.g, "x,y,epsilon").
-                           (default: "")
+                           assumes the default of each algorithm (e.g,
+                           "x,y,epsilon"). (default: "")
+  -p,--parameters          Convert floating point numbers to free parameters.
   -h,--help                Show this help text
+
 ```
 
 ## Contributing
