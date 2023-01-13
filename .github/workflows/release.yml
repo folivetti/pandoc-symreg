@@ -13,16 +13,6 @@ jobs:
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-      - name: Wait for tests to succeed
-        uses: lewagon/wait-on-check-action@v1.0.0
-        with:
-          ref: ${{ github.ref }}
-          check-regexp: '^Haskell-CI.*$'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 10
-      - name: Check out code
-        uses: actions/checkout@v3
-
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1.1.4
