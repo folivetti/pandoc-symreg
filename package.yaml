@@ -22,7 +22,7 @@ extra-source-files:
 description:         A pandoc-like cli tool and library to convert symbolic regression expressions to convenient formats
 
 dependencies:
-- base >= 4.16 && < 4.17
+- base >= 4.16 && < 4.18
 - bytestring >= 0.11 && < 0.12
 - attoparsec >= 0.14 && < 0.15
 - attoparsec-expr >= 0.1 && < 0.2
