@@ -5,20 +5,15 @@
 
 packages:
 - completed:
-    commit: a8f1e29b53f8a307d05b893ada59474f08eca902
-    git: https://github.com/folivetti/srtree.git
-    name: srtree
+    hackage: srtree-0.1.2.0@sha256:1ce20d46aa13235955f7ca0b2ae266de8f07a5c47e295d7ca633da6b02479de1,1625
     pantry-tree:
-      sha256: 7cb8a537d4330955b5d14323244f36694cbd19a46586d7dc896a702f59c80a89
-      size: 817
-    version: 0.1.0.0
+      sha256: 713e681800e57e9c13f458a351e036137481f520c1b0b275d3b19b1b610d8b33
+      size: 562
   original:
-    commit: a8f1e29b53f8a307d05b893ada59474f08eca902
-    git: https://github.com/folivetti/srtree.git
+    hackage: srtree-0.1.2.0
 snapshots:
 - completed:
-    sha256: a684cdbdf9304b325a503e0fe1d9648e9c18155ce4c7cfebbe8a7f93674e6295
-    size: 649106
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/5.yaml
-  original:
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/5.yaml
+    sha256: 4905c93319aa94aa53da8f41d614d7bacdbfe6c63a8c6132d32e6e62f24a9af4
+    size: 649315
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/6.yaml
+  original: lts-20.6
