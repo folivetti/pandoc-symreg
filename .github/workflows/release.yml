@@ -10,7 +10,16 @@ jobs:
   create_release:
     name: Create Github Release
     runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
+      - name: Wait for tests to succeed
+        uses: lewagon/wait-on-check-action@v1.0.0
+        with:
+          ref: ${{ github.ref }}
+          check-regexp: '^Haskell-CI.*$'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
       - name: Check out code
         uses: actions/checkout@v3
 
@@ -25,14 +34,6 @@ jobs:
           draft: true
           prerelease: false
 
-      - name: Output Release URL File
-        run: echo "${{ steps.create_release.outputs.upload_url }}" > release_url.txt
-      - name: Save Release URL File for publish
-        uses: actions/upload-artifact@v3
-        with:
-          name: release_url
-          path: release_url.txt
-
   build_artifact:
     needs: [create_release]
     name: ${{ matrix.os }}/GHC ${{ matrix.ghc }}/${{ github.ref }}
@@ -41,65 +42,60 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
         ghc:
-          - "9.2.5"
+          - 9.2.5
         cabal: ["3.6.2.0"]
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Check out code
         uses: actions/checkout@v3
 
       - name: Set tag name
-        uses: olegtarasov/get-tag@v2.1.2
+        uses: olegtarasov/get-tag@v2.1
         id: tag
         with:
           tagRegex: "v(.*)"
           tagRegexGroup: 1
 
       - name: Setup Haskell
-        uses: haskell/actions/setup@v2.0.1
+        uses: haskell/actions/setup@v2
         id: setup-haskell-cabal
         with:
           ghc-version: ${{ matrix.ghc }}
           cabal-version: ${{ matrix.cabal }}
 
-      - name: Freeze
-        run: |
-          cabal freeze
       - name: Cache ~/.cabal/store
-        uses: actions/cache@v3.0.11
+        uses: actions/cache@v2
         with:
-          path: ${{ steps.setup-haskell-cabal.outputs.cabal-store }}
-          key: ${{ runner.os }}-${{ matrix.ghc }}-${{ hashFiles('cabal.project.freeze') }}
+          key: ${{ runner.os }}-ghc-${{ matrix.ghc }}-${{ github.sha }}
+          path: ~/.cabal/store
 
       - name: Build binary
         run: |
           mkdir dist
-          cabal install exe:pandoc-symreg --install-method=copy --overwrite-policy=always --installdir=dist
+          cabal install exe:release --install-method=copy --overwrite-policy=always --installdir=dist
+
       - if: matrix.os == 'windows-latest'
         name: Set extension to .exe on Windows
         run: echo "EXT=.exe" >> $GITHUB_ENV
 
       - name: Set binary path name
-        run: echo "BINARY_PATH=./dist/pandoc-symreg${{ env.EXT }}" >> $GITHUB_ENV
+        run: echo "BINARY_PATH=./dist/release${{ env.EXT }}" >> $GITHUB_ENV
 
-      - name: Load Release URL File from release job
-        uses: actions/download-artifact@v3
+      - name: Compress binary
+        uses: svenstaro/upx-action@2.0.1
         with:
-          name: release_url
+          file: ${{ env.BINARY_PATH }}
 
-      - name: Get Release File Name & Upload URL
-        id: get_release_info
-        run: |
-          echo "upload_url=$(cat release_url/release_url.txt)" >> $GITHUB_OUTPUT
-      - name: Test
-        run: echo "$GITHUB_OUTPUT ---- $(cat release_url/release_url.txt)"
       - name: Upload Release Asset
         id: upload-release-asset
         uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.get_release_info.outputs.upload_url }}
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
           asset_path: ${{ env.BINARY_PATH }}
-          asset_name: pandoc-symreg-${{ steps.tag.outputs.tag }}-${{ runner.os }}-ghc-${{ matrix.ghc }}${{ env.EXT }}
+          asset_name: release-${{ steps.tag.outputs.tag }}-${{ runner.os }}-ghc-${{ matrix.ghc }}${{ env.EXT }}
           asset_content_type: application/octet-stream
