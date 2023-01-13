@@ -1,8 +1,10 @@
 name: pandoc-symreg Release
 
 on:
-  release:
-    types: [published]
+  # Trigger the workflow on the new 'v*' tag created
+  push:
+    tags:
+      - "v*"
 
 jobs:
   create_release:
