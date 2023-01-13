@@ -77,10 +77,12 @@ jobs:
           cabal install exe:pandoc-symreg --install-method=copy --overwrite-policy=always --installdir=dist
       - if: matrix.os == 'windows-latest'
         name: Set extension to .exe on Windows
-        run: echo "::set-env name=EXT::.exe"
+        #run: echo "::set-env name=EXT::.exe"
+        run: echo "EXT=.exe" >> $GITHUB_ENV
 
       - name: Set binary path name
-        run: echo "::set-env name=BINARY_PATH::./dist/pandoc-symreg${{ env.EXT }}"
+        #run: echo "::set-env name=BINARY_PATH::./dist/pandoc-symreg${{ env.EXT }}"
+        run: echo "BINARY_PATH=./dist/pandoc-symreg${{ env.EXT }}" >> $GITHUB_ENV
 
       - name: Compress binary
         uses: svenstaro/upx-action@2.0.1
@@ -95,7 +97,7 @@ jobs:
       - name: Get Release File Name & Upload URL
         id: get_release_info
         run: |
-          echo "::set-output name=upload_url::$(cat release_url/release_url.txt)"
+          echo "upload_url=$(cat release_url/release_url.txt)" >> $GITHUB_OUTPUT
       - name: Upload Release Asset
         id: upload-release-asset
         uses: actions/upload-release-asset@v1.0.2
