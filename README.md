@@ -24,7 +24,7 @@ And it can convert *to*
 - `python` ([Numpy](https://numpy.org/doc/stable/index.html) expression)
 - `math` (Plain math expression)
 - `tikz` ([TikZ](https://tikz.net/) code to print a tree)
-- `latex` ([Latex](https://www.latex-project.org/) equation)
+- `latex` ([LaTeX](https://www.latex-project.org/) equation)
 
 ## Installing
 

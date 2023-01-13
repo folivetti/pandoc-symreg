@@ -8,4 +8,14 @@ and this project adheres to the
 
 ## Unreleased
 
-## 0.1.0.0 - YYYY-MM-DD
+- Simplification with Equality Saturation
+- Added CI tests
+
+## 0.1.0.0 - 2023-01-13
+
+### Added
+
+- First release
+- Added support to TIR, HeuristicLab, Operon, and Bingo algorithms
+- Added support to python, math, TikZ, and laTeX outputs
+- Added support to replace numerical values with adjustable parameters variables
