@@ -11,6 +11,12 @@ and this project adheres to the
 - Simplification with Equality Saturation
 - Added CI tests
 
+## 0.1.0.1 - 2023-01-13
+
+### Changed
+
+- Updated the bounds for `base` to work with stackage nightly
+
 ## 0.1.0.0 - 2023-01-13
 
 ### Added

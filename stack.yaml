@@ -18,7 +18,7 @@
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
 resolver: lts-20.6
-
+  #resolver: nightly-2023-01-14
 # User packages to be built.
 # Various formats can be used as shown in the example below.
 #
@@ -41,7 +41,7 @@ packages:
 #
 # extra-deps: []
 extra-deps:                                                                                                   
-  - srtree-0.1.2.0
+  - srtree-0.1.2.1
 #  - git: https://github.com/folivetti/srtree.git                                                              
 #    commit: a8f1e29b53f8a307d05b893ada59474f08eca902
 # Override default flag values for local packages and extra-deps
