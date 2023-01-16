@@ -5,7 +5,7 @@ release](https://img.shields.io/github/release/folivetti/pandoc-symreg.svg)](htt
 [![hackage
 release](https://img.shields.io/hackage/v/pandoc-symreg.svg?label=hackage)](https://hackage.haskell.org/package/pandoc-symreg)
 [![stackage LTS
-package](https://stackage.org/package/pandoc-symreg/badge/lts)](https://www.stackage.org/lts/package/pandoc-symreg-types)
+package](https://www.stackage.org/package/pandoc-symreg/badge/nightly)](https://www.stackage.org/nightly/package/pandoc-symreg)
 [![CI
 tests](https://github.com/folivetti/pandoc-symreg/workflows/CI%20tests/badge.svg)](https://github.com/folivetti/pandoc-symreg/actions)
 [![license](https://img.shields.io/badge/license-GPLv3+-lightgray.svg)](https://www.gnu.org/licenses/gpl.html)
