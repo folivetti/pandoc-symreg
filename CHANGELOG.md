@@ -11,6 +11,12 @@ and this project adheres to the
 - Simplification with Equality Saturation
 - Added CI tests
 
+## 0.1.1.0 - 2023-02-13
+
+- Added support to GP-GOMEA
+- Added support to PySR
+- Added `-simplify` flag to apply `SRTree` simplification
+
 ## 0.1.0.1 - 2023-01-13
 
 ### Changed

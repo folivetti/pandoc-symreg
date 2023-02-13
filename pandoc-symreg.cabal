@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           pandoc-symreg
-version:        0.1.0.1
+version:        0.1.1.0
 synopsis:       A tool to convert symbolic regression expressions into different formats.
 description:    A pandoc-like cli tool and library to convert symbolic regression expressions to convenient formats
 category:       Text, Math

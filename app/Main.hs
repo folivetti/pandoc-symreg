@@ -38,6 +38,7 @@ data Args = Args
       , outfile     :: String
       , varnames    :: String
       , parameters  :: Bool
+      , simpl       :: Bool
     } deriving Show
 
 opt :: Parser Args
@@ -77,11 +78,14 @@ opt = Args
         ( long "parameters"
         <> short 'p'
         <> help "Convert floating point numbers to free parameters." )
+    <*> switch
+        ( long "simplify"
+        <> help "Apply basic simplification." )
 
 main :: IO ()
 main = do
   args <- execParser opts
-  withInput (infile args) (from args) (varnames args) (parameters args)
+  withInput (infile args) (from args) (varnames args) (parameters args) (simpl args)
     >>= withOutput (outfile args) (to args) 
   where 
       opts = info (opt <**> helper)

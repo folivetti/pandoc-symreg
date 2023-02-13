@@ -7,6 +7,7 @@ import Data.Attoparsec.Expr
 import qualified Data.ByteString.Char8 as B
 import Control.Applicative ( (<|>) )
 import qualified Data.SRTree.Print as P
+import Data.List ( sortOn )
 
 import Debug.Trace ( trace )
 import Data.SRTree
@@ -21,7 +22,7 @@ type ParseTree = Parser (SRTree Int Double)
 -- * Data types and caller functions
 
 -- | Supported algorithms.
-data SRAlgs = TIR | HL | OPERON | BINGO deriving (Show, Read, Enum, Bounded)
+data SRAlgs = TIR | HL | OPERON | BINGO | GOMEA | PYSR deriving (Show, Read, Enum, Bounded)
 
 -- | Supported outputs.
 data Output = PYTHON | MATH | TIKZ | LATEX deriving (Show, Read, Enum, Bounded)
@@ -39,6 +40,8 @@ parseSR HL     header param = eitherResult . (`feed` "") . parse (parseHL param 
 parseSR BINGO  header param = eitherResult . (`feed` "") . parse (parseBingo param $ splitHeader header) . putEOL
 parseSR TIR    header param = eitherResult . (`feed` "") . parse (parseTIR param $ splitHeader header) . putEOL
 parseSR OPERON header param = eitherResult . (`feed` "") . parse (parseOperon param $ splitHeader header) . putEOL
+parseSR GOMEA  header param = eitherResult . (`feed` "") . parse (parseGOMEA param $ splitHeader header) . putEOL
+parseSR PYSR   header param = eitherResult . (`feed` "") . parse (parsePySR param $ splitHeader header) . putEOL
 
 eitherResult' :: Show r => Result r -> Either String r
 eitherResult' res = trace (show res) $ eitherResult res
@@ -78,7 +81,7 @@ parseExpr table binFuns var param header = do e <- relabelParams <$> expr
              then var
              else var <|> varHeader
 
-    varHeader        = choice $ map (uncurry getParserVar) header
+    varHeader        = choice $ map (uncurry getParserVar) $ sortOn (B.length . fst) header
     getParserVar k v = (string k <|> enveloped k) >> pure (Var v)
     enveloped s      = (char ' ' <|> char '(') >> string s >> (char ' ' <|> char ')') >> pure ""
 
@@ -109,8 +112,11 @@ putEOL bs | B.last bs == '\n' = bs
 -- * Special case functions
 
 -- | analytic quotient
-aq :: Floating a => a -> a -> a
-aq x y = x / sqrt (1 + y ^ (2 :: Int))
+aq :: SRTree Int Double -> SRTree Int Double -> SRTree Int Double
+aq x y = x / sqrt (1 + y ** 2)
+
+log1p :: SRTree Int Double -> SRTree Int Double
+log1p x = log (1 + x)
 
 -- Parse `abs` functions as | x |
 enclosedAbs :: Num a => Parser a -> Parser a
@@ -213,6 +219,51 @@ parseBingo = parseExpr (prefixOps : binOps) binFuns var
             , [binary " + " (+) AssocLeft, binary " - " (-) AssocLeft]
             ]
     var = do string "X_"
+             ix <- decimal
+             pure $ Var ix
+          <?> "var"
+
+-- | parser for GOMEA
+parseGOMEA :: Bool -> [(B.ByteString, Int)] -> ParseTree
+parseGOMEA = parseExpr (prefixOps : binOps) binFuns var
+  where
+    binFuns = []
+    prefixOps = map (uncurry prefix)
+                [ ("exp", exp), ("plog", log.abs)
+                , ("sqrt", sqrt.abs)
+                , ("sin", sin), ("cos", cos)
+                ]
+    binOps = [[binary "^" Power AssocLeft]
+            , [binary "/" (/) AssocLeft, binary "*" (*) AssocLeft, binary "aq" aq AssocLeft]
+            , [binary "+" (+) AssocLeft, binary "-" (-) AssocLeft]
+            ]
+    var = do string "x"
+             ix <- decimal
+             pure $ Var ix
+          <?> "var"
+
+-- | parser for PySR
+parsePySR :: Bool -> [(B.ByteString, Int)] -> ParseTree
+parsePySR = parseExpr (prefixOps : binOps) binFuns var
+  where
+    binFuns   = [ binFun "pow" Power ]
+    prefixOps = map (uncurry prefix)
+                [ ("abs", abs), ("exp", exp)
+                , ("square", (**2)), ("cube", (**3)), ("neg", negate)
+                , ("acosh_abs", acosh . (+1) . abs), ("acosh", acosh), ("asinh", asinh)
+                , ("acos", acos), ("asin", asin), ("atan", atan)
+                , ("sqrt_abs", sqrt.abs), ("sqrt", sqrt)
+                , ("sinh", sinh), ("cosh", cosh), ("tanh", tanh)
+                , ("sin", sin), ("cos", cos), ("tan", tan)
+                , ("log10", (`LogBase` 10)), ("log2", (`LogBase` 2)), ("log1p", log1p) 
+                , ("log_abs", log.abs), ("log10_abs", (`LogBase` 10) . abs)
+                , ("log", log)
+                ]
+    binOps = [[binary " ^ " Power AssocLeft]
+            , [binary " / " (/) AssocLeft, binary " * " (*) AssocLeft]
+            , [binary " + " (+) AssocLeft, binary " - " (-) AssocLeft]
+            ]
+    var = do string "x"
              ix <- decimal
              pure $ Var ix
           <?> "var"

@@ -8,11 +8,12 @@ import qualified Data.ByteString.Char8 as B
 import Data.SRTree
 import Text.ParseSR ( SRAlgs, Output, parseSR, showOutput )
 
-withInput :: String -> SRAlgs -> String -> Bool -> IO [Either String (SRTree Int Double)]
-withInput fname sr hd param = do
+withInput :: String -> SRAlgs -> String -> Bool -> Bool -> IO [Either String (SRTree Int Double)]
+withInput fname sr hd param simpl = do
   h <- if null fname then pure stdin else openFile fname ReadMode
   contents <- hGetLines h 
-  let myParser = parseSR sr (B.pack hd) param . B.pack
+  let myParserFun = parseSR sr (B.pack hd) param . B.pack
+      myParser = if simpl then fmap simplify . myParserFun else myParserFun
       es = map myParser contents
   unless (null fname) $ hClose h
   pure es

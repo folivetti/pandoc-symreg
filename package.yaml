@@ -1,5 +1,5 @@
 name:                pandoc-symreg
-version:             0.1.0.1
+version:             0.1.1.0
 synopsis:            A tool to convert symbolic regression expressions into different formats.
 github:              "folivetti/pandoc-symreg"
 license:             GPL-3
