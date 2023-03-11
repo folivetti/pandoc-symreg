@@ -153,7 +153,7 @@ parseTIR = parseExpr (prefixOps : binOps) binFuns var
                 ]
     binOps = [[binary "^" Power AssocLeft], [binary "**" Power AssocLeft]
             , [binary " * " (*) AssocLeft, binary " / " (/) AssocLeft]
-            , [binary " + " (+) AssocLeft]
+            , [binary " + " (+) AssocLeft, binary " - " (+) AssocLeft]
             ]
     var = do char 'x'
              ix <- decimal
