@@ -14,7 +14,7 @@ withInput fname sr hd param simpl = do
   contents <- hGetLines h 
   let myParserFun = parseSR sr (B.pack hd) param . B.pack
       myParser = if simpl then fmap simplify . myParserFun else myParserFun
-      es = map myParser contents
+      es = map myParser $ filter (not . null) contents
   unless (null fname) $ hClose h
   pure es
 

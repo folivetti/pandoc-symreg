@@ -173,7 +173,7 @@ parseOperon = parseExpr (prefixOps : binOps) binFuns var
                 , ("sqrt", sqrt), ("square", (**2))
                 , ("atan", atan), ("tanh", tanh), ("tan", tan)
                 ]
-    binOps = [[binary "^" Power AssocLeft]
+    binOps = [[binary " ^ " Power AssocLeft]
             , [binary " * " (*) AssocLeft, binary " / " (/) AssocLeft]
             , [binary " + " (+) AssocLeft, binary " - " (-) AssocLeft]
             ]
@@ -195,7 +195,7 @@ parseHL = parseExpr (prefixOps : binOps) binFuns var
                 , ("tan", tan), ("tanh", tanh)
                 ]
     binOps = [[binary "^" Power AssocLeft]
-            , [binary " * " (*) AssocLeft, binary " / " (/) AssocLeft]
+            , [binary " * " (*) AssocLeft, binary "/" (/) AssocLeft]
             , [binary " + " (+) AssocLeft, binary " - " (-) AssocLeft]
             ]
     var = do char 'x'
