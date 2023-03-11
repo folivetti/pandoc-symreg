@@ -151,7 +151,7 @@ parseTIR = parseExpr (prefixOps : binOps) binFuns var
                   , ("Sqrt", sqrt), ("Cbrt", Fun Cbrt), ("Square", (**2))
                   , ("Log", log), ("Exp", exp)
                 ]
-    binOps = [[binary "^" Power AssocLeft]
+    binOps = [[binary "^" Power AssocLeft], [binary "**" Power AssocLeft]
             , [binary " * " (*) AssocLeft, binary " / " (/) AssocLeft]
             , [binary " + " (+) AssocLeft]
             ]
