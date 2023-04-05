@@ -22,7 +22,7 @@ type ParseTree = Parser (SRTree Int Double)
 -- * Data types and caller functions
 
 -- | Supported algorithms.
-data SRAlgs = TIR | HL | OPERON | BINGO | GOMEA | PYSR deriving (Show, Read, Enum, Bounded)
+data SRAlgs = TIR | HL | OPERON | BINGO | GOMEA | PYSR | SBP | EPLEX deriving (Show, Read, Enum, Bounded)
 
 -- | Supported outputs.
 data Output = PYTHON | MATH | TIKZ | LATEX deriving (Show, Read, Enum, Bounded)
@@ -36,12 +36,14 @@ showOutput LATEX  = P.showLatex
 
 -- | Calls the corresponding parser for a given `SRAlgs`
 parseSR :: SRAlgs -> B.ByteString -> Bool -> B.ByteString -> Either String (SRTree Int Double)
-parseSR HL     header param = eitherResult . (`feed` "") . parse (parseHL param $ splitHeader header) . putEOL
-parseSR BINGO  header param = eitherResult . (`feed` "") . parse (parseBingo param $ splitHeader header) . putEOL
-parseSR TIR    header param = eitherResult . (`feed` "") . parse (parseTIR param $ splitHeader header) . putEOL
-parseSR OPERON header param = eitherResult . (`feed` "") . parse (parseOperon param $ splitHeader header) . putEOL
-parseSR GOMEA  header param = eitherResult . (`feed` "") . parse (parseGOMEA param $ splitHeader header) . putEOL
-parseSR PYSR   header param = eitherResult . (`feed` "") . parse (parsePySR param $ splitHeader header) . putEOL
+parseSR HL     header param = eitherResult . (`feed` "") . parse (parseHL param $ splitHeader header) . putEOL . B.strip
+parseSR BINGO  header param = eitherResult . (`feed` "") . parse (parseBingo param $ splitHeader header) . putEOL . B.strip
+parseSR TIR    header param = eitherResult . (`feed` "") . parse (parseTIR param $ splitHeader header) . putEOL . B.strip
+parseSR OPERON header param = eitherResult . (`feed` "") . parse (parseOperon param $ splitHeader header) . putEOL . B.strip
+parseSR GOMEA  header param = eitherResult . (`feed` "") . parse (parseGOMEA param $ splitHeader header) . putEOL . B.strip
+parseSR SBP    header param = eitherResult . (`feed` "") . parse (parseGOMEA param $ splitHeader header) . putEOL . B.strip
+parseSR EPLEX  header param = eitherResult . (`feed` "") . parse (parseGOMEA param $ splitHeader header) . putEOL . B.strip
+parseSR PYSR   header param = eitherResult . (`feed` "") . parse (parsePySR param $ splitHeader header) . putEOL . B.strip
 
 eitherResult' :: Show r => Result r -> Either String r
 eitherResult' res = trace (show res) $ eitherResult res
@@ -81,7 +83,7 @@ parseExpr table binFuns var param header = do e <- relabelParams <$> expr
              then var
              else var <|> varHeader
 
-    varHeader        = choice $ map (uncurry getParserVar) $ sortOn (B.length . fst) header
+    varHeader        = choice $ map (uncurry getParserVar) $ sortOn (negate . B.length . fst) header
     getParserVar k v = (string k <|> enveloped k) >> pure (Var v)
     enveloped s      = (char ' ' <|> char '(') >> string s >> (char ' ' <|> char ')') >> pure ""
 
