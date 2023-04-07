@@ -34,6 +34,7 @@ withOutputDebug fname output exprs = do
                    Right (t1, t2) -> do 
                                        hPutStrLn h ("First: " <> showOutput output t1)
                                        hPutStrLn h ("Second: " <> showOutput output t2)
+                                       hFlush h
   unless (null fname) $ hClose h
 
 hGetLines :: Handle -> IO [String]
