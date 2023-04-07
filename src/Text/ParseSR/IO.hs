@@ -1,5 +1,5 @@
 {-# language LambdaCase #-}
-module Text.ParseSR.IO ( withInput, withOutput )
+module Text.ParseSR.IO ( withInput, withOutput, withOutputDebug )
     where
 
 import Control.Monad ( unless, forM_ )
@@ -24,6 +24,16 @@ withOutput fname output exprs = do
   forM_ exprs $ \case 
                    Left  err -> hPutStrLn h $ "invalid expression: " <> err
                    Right ex  -> hPutStrLn h (showOutput output ex)
+  unless (null fname) $ hClose h
+
+withOutputDebug :: String -> Output -> [Either String (SRTree Int Double, SRTree Int Double)] -> IO ()
+withOutputDebug fname output exprs = do
+  h <- if null fname then pure stdout else openFile fname WriteMode
+  forM_ exprs $ \case 
+                   Left  err      -> hPutStrLn h $ "invalid expression: " <> err
+                   Right (t1, t2) -> do 
+                                       hPutStrLn h ("First: " <> showOutput output t1)
+                                       hPutStrLn h ("Second: " <> showOutput output t2)
   unless (null fname) $ hClose h
 
 hGetLines :: Handle -> IO [String]
