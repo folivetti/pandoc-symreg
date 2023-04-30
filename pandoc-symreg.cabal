@@ -42,6 +42,7 @@ library
     , mtl ==2.2.*
     , optparse-applicative ==0.17.*
     , srtree >=1.0.0.1 && <1.1
+    , srtree-eqsat
   default-language: Haskell2010
 
 executable pandoc-symreg
@@ -60,6 +61,7 @@ executable pandoc-symreg
     , optparse-applicative ==0.17.*
     , pandoc-symreg
     , srtree >=1.0.0.1 && <1.1
+    , srtree-eqsat
   default-language: Haskell2010
 
 test-suite pandoc-symreg-test
@@ -79,4 +81,5 @@ test-suite pandoc-symreg-test
     , optparse-applicative ==0.17.*
     , pandoc-symreg
     , srtree >=1.0.0.1 && <1.1
+    , srtree-eqsat
   default-language: Haskell2010

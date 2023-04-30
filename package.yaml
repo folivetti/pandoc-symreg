@@ -29,6 +29,7 @@ dependencies:
 - optparse-applicative >= 0.17 && < 0.18
 - mtl >= 2.2 && < 2.3
 - srtree >= 1.0.0.1 && < 1.1
+- srtree-eqsat
 
 ghc-options:
 - -Wall
