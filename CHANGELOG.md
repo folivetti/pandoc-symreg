@@ -11,6 +11,12 @@ and this project adheres to the
 - Simplification with Equality Saturation
 - Added CI tests
 
+## 0.2.1.0 - 2023-04-30
+
+- Changed to srtree-1.0.0.1
+- Fixed not parsing white spaces between operators
+- Simplification disabled for now
+
 ## 0.1.1.0 - 2023-02-13
 
 - Added support to GP-GOMEA

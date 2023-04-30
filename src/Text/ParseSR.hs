@@ -11,13 +11,14 @@ import Data.List ( sortOn )
 
 import Debug.Trace ( trace )
 import Data.SRTree
+import Data.SRTree.Recursion (Fix(..))
 
 -- * Data types
 
 -- | Parser of a symbolic regression tree with `Int` variable index and
 -- numerical values represented as `Double`. The numerical values type
 -- can be changed with `fmap`.
-type ParseTree = Parser (SRTree Int Double)
+type ParseTree = Parser (Fix SRTree)
 
 -- * Data types and caller functions
 
@@ -28,22 +29,22 @@ data SRAlgs = TIR | HL | OPERON | BINGO | GOMEA | PYSR | SBP | EPLEX deriving (S
 data Output = PYTHON | MATH | TIKZ | LATEX deriving (Show, Read, Enum, Bounded)
 
 -- | Returns the corresponding function from Data.SRTree.Print for a given `Output`.
-showOutput :: Output -> SRTree Int Double -> String
+showOutput :: Output -> Fix SRTree -> String
 showOutput PYTHON = P.showPython
-showOutput MATH   = P.showDefault
+showOutput MATH   = P.showExpr
 showOutput TIKZ   = P.showTikz
 showOutput LATEX  = P.showLatex
 
 -- | Calls the corresponding parser for a given `SRAlgs`
-parseSR :: SRAlgs -> B.ByteString -> Bool -> B.ByteString -> Either String (SRTree Int Double)
-parseSR HL     header param = eitherResult . (`feed` "") . parse (parseHL param $ splitHeader header) . putEOL . B.strip
-parseSR BINGO  header param = eitherResult . (`feed` "") . parse (parseBingo param $ splitHeader header) . putEOL . B.strip
-parseSR TIR    header param = eitherResult . (`feed` "") . parse (parseTIR param $ splitHeader header) . putEOL . B.strip
-parseSR OPERON header param = eitherResult . (`feed` "") . parse (parseOperon param $ splitHeader header) . putEOL . B.strip
-parseSR GOMEA  header param = eitherResult . (`feed` "") . parse (parseGOMEA param $ splitHeader header) . putEOL . B.strip
-parseSR SBP    header param = eitherResult . (`feed` "") . parse (parseGOMEA param $ splitHeader header) . putEOL . B.strip
-parseSR EPLEX  header param = eitherResult . (`feed` "") . parse (parseGOMEA param $ splitHeader header) . putEOL . B.strip
-parseSR PYSR   header param = eitherResult . (`feed` "") . parse (parsePySR param $ splitHeader header) . putEOL . B.strip
+parseSR :: SRAlgs -> B.ByteString -> Bool -> B.ByteString -> Either String (Fix SRTree)
+parseSR HL     header reparam = eitherResult . (`feed` "") . parse (parseHL reparam $ splitHeader header) . putEOL . B.strip
+parseSR BINGO  header reparam = eitherResult . (`feed` "") . parse (parseBingo reparam $ splitHeader header) . putEOL . B.strip
+parseSR TIR    header reparam = eitherResult . (`feed` "") . parse (parseTIR reparam $ splitHeader header) . putEOL . B.strip
+parseSR OPERON header reparam = eitherResult . (`feed` "") . parse (parseOperon reparam $ splitHeader header) . putEOL . B.strip
+parseSR GOMEA  header reparam = eitherResult . (`feed` "") . parse (parseGOMEA reparam $ splitHeader header) . putEOL . B.strip
+parseSR SBP    header reparam = eitherResult . (`feed` "") . parse (parseGOMEA reparam $ splitHeader header) . putEOL . B.strip
+parseSR EPLEX  header reparam = eitherResult . (`feed` "") . parse (parseGOMEA reparam $ splitHeader header) . putEOL . B.strip
+parseSR PYSR   header reparam = eitherResult . (`feed` "") . parse (parsePySR reparam $ splitHeader header) . putEOL . B.strip
 
 eitherResult' :: Show r => Result r -> Either String r
 eitherResult' res = trace (show res) $ eitherResult res
@@ -52,7 +53,7 @@ eitherResult' res = trace (show res) $ eitherResult res
 
 -- | Creates a parser for a binary operator
 binary :: B.ByteString -> (a -> a -> a) -> Assoc -> Operator B.ByteString a
-binary name fun  = Infix (do{ string name; pure fun })
+binary name fun  = Infix (do{ string (B.cons ' ' (B.snoc name ' ')) <|> string name; pure fun })
 
 -- | Creates a parser for a unary function
 prefix :: B.ByteString -> (a -> a) -> Operator B.ByteString a
@@ -66,25 +67,25 @@ parens e = do{ string "("; e' <- e; string ")"; pure e' } <?> "parens"
 -- the name of the functions and operators of that SR algorithm, a list of parsers `binFuns` for binary functions
 -- a parser `var` for variables, a boolean indicating whether to change floating point values to free
 -- parameters variables, and a list of variable names with their corresponding indexes.
-parseExpr :: [[Operator B.ByteString (SRTree Int Double)]] -> [ParseTree -> ParseTree] -> ParseTree -> Bool -> [(B.ByteString, Int)] -> ParseTree
-parseExpr table binFuns var param header = do e <- relabelParams <$> expr
-                                              many1' space
-                                              pure e
+parseExpr :: [[Operator B.ByteString (Fix SRTree)]] -> [ParseTree -> ParseTree] -> ParseTree -> Bool -> [(B.ByteString, Int)] -> ParseTree
+parseExpr table binFuns var reparam header = do e <- relabelParams <$> expr
+                                                many1' space
+                                                pure e
   where
     term  = parens expr <|> enclosedAbs expr <|> choice (map ($ expr) binFuns) <|> coef <|> varC <?> "term"
     expr  = buildExpressionParser table term
-    coef  = if param 
+    coef  = if reparam 
               then do eNumber <- intOrDouble
                       case eNumber of
-                        Left x  -> pure $ Const (fromIntegral x)
-                        Right _ -> pure $ Param 0
-              else Const <$> signed double <?> "const"
+                        Left x  -> pure $ fromIntegral x
+                        Right _ -> pure $ param 0
+              else Fix . Const <$> signed double <?> "const"
     varC = if null header
              then var
              else var <|> varHeader
 
     varHeader        = choice $ map (uncurry getParserVar) $ sortOn (negate . B.length . fst) header
-    getParserVar k v = (string k <|> enveloped k) >> pure (Var v)
+    getParserVar k v = (string k <|> enveloped k) >> pure (Fix $ Var v)
     enveloped s      = (char ' ' <|> char '(') >> string s >> (char ' ' <|> char ')') >> pure ""
 
 enumerate :: [a] -> [(a, Int)]
@@ -114,11 +115,20 @@ putEOL bs | B.last bs == '\n' = bs
 -- * Special case functions
 
 -- | analytic quotient
-aq :: SRTree Int Double -> SRTree Int Double -> SRTree Int Double
+aq :: Fix SRTree -> Fix SRTree -> Fix SRTree
 aq x y = x / sqrt (1 + y ** 2)
 
-log1p :: SRTree Int Double -> SRTree Int Double
+log1p :: Fix SRTree -> Fix SRTree
 log1p x = log (1 + x)
+
+log10 :: Fix SRTree -> Fix SRTree
+log10 x = log x / log 10
+
+log2 :: Fix SRTree -> Fix SRTree
+log2 x = log x / log 2
+
+cbrt :: Fix SRTree -> Fix SRTree
+cbrt x = x ** (1/3)
 
 -- Parse `abs` functions as | x |
 enclosedAbs :: Num a => Parser a -> Parser a
@@ -150,38 +160,38 @@ parseTIR = parseExpr (prefixOps : binOps) binFuns var
                   , ("Sin", sin), ("Cos", cos), ("Tan", tan)
                   , ("ASinh", asinh), ("ACosh", acosh), ("ATanh", atanh)
                   , ("ASin", asin), ("ACos", acos), ("ATan", atan)
-                  , ("Sqrt", sqrt), ("Cbrt", Fun Cbrt), ("Square", (**2))
+                  , ("Sqrt", sqrt), ("Cbrt", cbrt), ("Square", (**2))
                   , ("Log", log), ("Exp", exp)
                 ]
-    binOps = [[binary "^" Power AssocLeft], [binary "**" Power AssocLeft]
-            , [binary " * " (*) AssocLeft, binary " / " (/) AssocLeft]
-            , [binary " + " (+) AssocLeft, binary " - " (+) AssocLeft]
+    binOps = [[binary "^" (**) AssocLeft], [binary "**" (**) AssocLeft]
+            , [binary "*" (*) AssocLeft, binary "/" (/) AssocLeft]
+            , [binary "+" (+) AssocLeft, binary "-" (+) AssocLeft]
             ]
     var = do char 'x'
              ix <- decimal
-             pure $ Var ix
+             pure $ Fix $ Var ix
           <?> "var"
 
 -- | parser for Operon.
 parseOperon :: Bool -> [(B.ByteString, Int)] -> ParseTree
 parseOperon = parseExpr (prefixOps : binOps) binFuns var
   where
-    binFuns   = [ binFun "pow" Power ]
+    binFuns   = [ binFun "pow" (**) ]
     prefixOps = map (uncurry prefix)
-                [ ("abs", abs), ("cbrt", Fun Cbrt)
+                [ ("abs", abs), ("cbrt", cbrt)
                 , ("acos", acos), ("cosh", cosh), ("cos", cos)
                 , ("asin", asin), ("sinh", sinh), ("sin", sin)
                 , ("exp", exp), ("log", log)
                 , ("sqrt", sqrt), ("square", (**2))
                 , ("atan", atan), ("tanh", tanh), ("tan", tan)
                 ]
-    binOps = [[binary " ^ " Power AssocLeft]
-            , [binary " * " (*) AssocLeft, binary " / " (/) AssocLeft]
-            , [binary " + " (+) AssocLeft, binary " - " (-) AssocLeft]
+    binOps = [[binary "^" (**) AssocLeft]
+            , [binary "*" (*) AssocLeft, binary "/" (/) AssocLeft]
+            , [binary "+" (+) AssocLeft, binary "-" (-) AssocLeft]
             ]
     var = do char 'X'
              ix <- decimal
-             pure $ Var (ix - 1) -- Operon is not 0-based
+             pure $ Fix $ Var (ix - 1) -- Operon is not 0-based
           <?> "var"
 
 -- | parser for HeuristicLab.
@@ -193,16 +203,16 @@ parseHL = parseExpr (prefixOps : binOps) binFuns var
                 [ ("logabs", log.abs), ("sqrtabs", sqrt.abs) -- the longer versions should come first
                 , ("abs", abs), ("exp", exp), ("log", log)
                 , ("sqrt", sqrt), ("sqr", (**2)), ("cube", (**3))
-                , ("cbrt", Fun Cbrt), ("sin", sin), ("cos", cos)
+                , ("cbrt", cbrt), ("sin", sin), ("cos", cos)
                 , ("tan", tan), ("tanh", tanh)
                 ]
-    binOps = [[binary "^" Power AssocLeft]
-            , [binary " * " (*) AssocLeft, binary "/" (/) AssocLeft]
-            , [binary " + " (+) AssocLeft, binary " - " (-) AssocLeft]
+    binOps = [[binary "^" (**) AssocLeft]
+            , [binary "*" (*) AssocLeft, binary "/" (/) AssocLeft]
+            , [binary "+" (+) AssocLeft, binary "-" (-) AssocLeft]
             ]
     var = do char 'x'
              ix <- decimal
-             pure $ Var ix
+             pure $ Fix $ Var ix
           <?> "var"
 
 -- | parser for Bingo
@@ -216,13 +226,13 @@ parseBingo = parseExpr (prefixOps : binOps) binFuns var
                 , ("sinh", sinh), ("cosh", cosh)
                 , ("sin", sin), ("cos", cos)
                 ]
-    binOps = [[binary "^" Power AssocLeft]
+    binOps = [[binary "^" (**) AssocLeft]
             , [binary "/" (/) AssocLeft, binary "" (*) AssocLeft]
-            , [binary " + " (+) AssocLeft, binary " - " (-) AssocLeft]
+            , [binary "+" (+) AssocLeft, binary "-" (-) AssocLeft]
             ]
     var = do string "X_"
              ix <- decimal
-             pure $ Var ix
+             pure $ Fix $ Var ix
           <?> "var"
 
 -- | parser for GOMEA
@@ -235,20 +245,20 @@ parseGOMEA = parseExpr (prefixOps : binOps) binFuns var
                 , ("sqrt", sqrt.abs)
                 , ("sin", sin), ("cos", cos)
                 ]
-    binOps = [[binary "^" Power AssocLeft]
+    binOps = [[binary "^" (**) AssocLeft]
             , [binary "/" (/) AssocLeft, binary "*" (*) AssocLeft, binary "aq" aq AssocLeft]
             , [binary "+" (+) AssocLeft, binary "-" (-) AssocLeft]
             ]
     var = do string "x"
              ix <- decimal
-             pure $ Var ix
+             pure $ Fix $ Var ix
           <?> "var"
 
 -- | parser for PySR
 parsePySR :: Bool -> [(B.ByteString, Int)] -> ParseTree
 parsePySR = parseExpr (prefixOps : binOps) binFuns var
   where
-    binFuns   = [ binFun "pow" Power ]
+    binFuns   = [ binFun "pow" (**) ]
     prefixOps = map (uncurry prefix)
                 [ ("abs", abs), ("exp", exp)
                 , ("square", (**2)), ("cube", (**3)), ("neg", negate)
@@ -257,15 +267,15 @@ parsePySR = parseExpr (prefixOps : binOps) binFuns var
                 , ("sqrt_abs", sqrt.abs), ("sqrt", sqrt)
                 , ("sinh", sinh), ("cosh", cosh), ("tanh", tanh)
                 , ("sin", sin), ("cos", cos), ("tan", tan)
-                , ("log10", (`LogBase` 10)), ("log2", (`LogBase` 2)), ("log1p", log1p) 
-                , ("log_abs", log.abs), ("log10_abs", (`LogBase` 10) . abs)
+                , ("log10", log10), ("log2", log2), ("log1p", log1p) 
+                , ("log_abs", log.abs), ("log10_abs", log10 . abs)
                 , ("log", log)
                 ]
-    binOps = [[binary " ^ " Power AssocLeft]
-            , [binary " / " (/) AssocLeft, binary " * " (*) AssocLeft]
-            , [binary " + " (+) AssocLeft, binary " - " (-) AssocLeft]
+    binOps = [[binary "^" (**) AssocLeft]
+            , [binary "/" (/) AssocLeft, binary "*" (*) AssocLeft]
+            , [binary "+" (+) AssocLeft, binary "-" (-) AssocLeft]
             ]
     var = do string "x"
              ix <- decimal
-             pure $ Var ix
+             pure $ Fix $ Var ix
           <?> "var"

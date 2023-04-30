@@ -18,6 +18,10 @@ Pandoc-Symreg is a [Haskell](https://haskell.org) library and CLI inspired by [P
 - `HL` ([HeuristicLab](https://github.com/heal-research/HeuristicLab))
 - `Operon` ([Operon](https://github.com/heal-research/operon))
 - `Bingo` ([Bingo](https://github.com/nasa/bingo/tree/master/bingo))
+- `GP-GOMEA` ([GP-GOMEA](https://github.com/marcovirgolin/GP-GOMEA))
+- `PySR` ([PySR](https://github.com/MilesCranmer/PySR))
+- `SBP` ([SBP](https://github.com/marcovirgolin/GP-GOMEA))
+- `EPLEX`
 
 And it can convert *to*
 

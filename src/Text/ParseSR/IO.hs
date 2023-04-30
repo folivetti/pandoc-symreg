@@ -6,9 +6,10 @@ import Control.Monad ( unless, forM_ )
 import System.IO
 import qualified Data.ByteString.Char8 as B
 import Data.SRTree
+import Data.SRTree.Recursion (Fix(..))
 import Text.ParseSR ( SRAlgs, Output, parseSR, showOutput )
 
-withInput :: String -> SRAlgs -> String -> Bool -> Bool -> IO [Either String (SRTree Int Double)]
+withInput :: String -> SRAlgs -> String -> Bool -> Bool -> IO [Either String (Fix SRTree)]
 withInput fname sr hd param simpl = do
   h <- if null fname then pure stdin else openFile fname ReadMode
   contents <- hGetLines h 
@@ -17,8 +18,9 @@ withInput fname sr hd param simpl = do
       es = map myParser $ filter (not . null) contents
   unless (null fname) $ hClose h
   pure es
+  where simplify = id
 
-withOutput :: String -> Output -> [Either String (SRTree Int Double)] -> IO ()
+withOutput :: String -> Output -> [Either String (Fix SRTree)] -> IO ()
 withOutput fname output exprs = do
   h <- if null fname then pure stdout else openFile fname WriteMode
   forM_ exprs $ \case 
@@ -26,7 +28,7 @@ withOutput fname output exprs = do
                    Right ex  -> hPutStrLn h (showOutput output ex)
   unless (null fname) $ hClose h
 
-withOutputDebug :: String -> Output -> [Either String (SRTree Int Double, SRTree Int Double)] -> IO ()
+withOutputDebug :: String -> Output -> [Either String (Fix SRTree, Fix SRTree)] -> IO ()
 withOutputDebug fname output exprs = do
   h <- if null fname then pure stdout else openFile fname WriteMode
   forM_ exprs $ \case 
