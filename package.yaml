@@ -1,5 +1,5 @@
 name:                pandoc-symreg
-version:             0.2.0.0
+version:             0.2.1.0
 synopsis:            A tool to convert symbolic regression expressions into different formats.
 github:              "folivetti/pandoc-symreg"
 license:             GPL-3
@@ -26,9 +26,9 @@ dependencies:
 - bytestring >= 0.11 && < 0.12
 - attoparsec >= 0.14 && < 0.15
 - attoparsec-expr >= 0.1 && < 0.2
-- optparse-applicative >= 0.17 && < 0.18
+- optparse-applicative >= 0.18 && < 0.19
 - mtl >= 2.2 && < 2.3
-- srtree >= 1.0.0.1 && < 1.1
+- srtree >= 1.0.0.4 && < 1.1
 - srtree-eqsat
 
 ghc-options:

@@ -11,7 +11,6 @@ import Data.List ( sortOn )
 
 import Debug.Trace ( trace )
 import Data.SRTree
-import Data.SRTree.Recursion (Fix(..))
 
 -- * Data types
 

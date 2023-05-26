@@ -17,7 +17,7 @@
 #
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
-resolver: lts-20.16
+resolver: lts-20.22
   #resolver: nightly-2023-01-14
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -41,10 +41,11 @@ packages:
 #
 # extra-deps: []
 extra-deps:                                                                                                   
-   - srtree-1.0.0.1
+   - srtree-1.0.0.4
    - hegg-0.3.0.0
+   - optparse-applicative-0.18.0.0
    - git: https://github.com/folivetti/srtree-eqsat
-     commit: 02df90f369f43d9aaf50497fb1e92667b58e276c
+     commit: 2aec71a15556738aa6a5e22bc0e47f8a09d7aca0
 #  - srtree-0.1.2.1
 #  - git: https://github.com/folivetti/srtree.git                                                              
 #    commit: a8f1e29b53f8a307d05b893ada59474f08eca902
