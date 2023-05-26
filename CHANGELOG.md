@@ -10,6 +10,10 @@ and this project adheres to the
 
 - Added CI tests
 
+## 0.2.1.1 - 2023-05-26
+
+- Changed to optparse-applicative-0.18.0.0
+
 ## 0.2.1.0 - 2023-05-20
 
 - Changed to srtree-1.0.0.1
