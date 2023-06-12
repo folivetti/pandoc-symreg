@@ -10,7 +10,7 @@ package](https://www.stackage.org/package/pandoc-symreg/badge/nightly)](https://
 tests](https://github.com/folivetti/pandoc-symreg/workflows/CI%20tests/badge.svg)](https://github.com/folivetti/pandoc-symreg/actions)
 [![license](https://img.shields.io/badge/license-GPLv3+-lightgray.svg)](https://www.gnu.org/licenses/gpl.html)
 
-## Conversion tool for Symbolic Regression tools
+## Conversion tool for Symbolic Regression algorithms
 
 Pandoc-Symreg is a [Haskell](https://haskell.org) library and CLI inspired by [Pandoc](https://github.com/jgm/pandoc) for converting the output of Symbolic Regression tools to convenient formats for post analysis and documentation. It currently supports converting the output *from*
 
@@ -30,6 +30,10 @@ And it can convert *to*
 - `tikz` ([TikZ](https://tikz.net/) code to print a tree)
 - `latex` ([LaTeX](https://www.latex-project.org/) equation)
 
+This tool also supports changing floating-point numbers into parameter variables (named `t` or `theta`) and simplifying the expression using Equality Saturation as described in:
+
+> de França, Fabrício Olivetti and Kronberger, Gabriel. "Reducing Overparameterization of Symbolic Regression Models with Equality Saturation." Proceedings of the Genetic and Evolutionary Computation Conference. 2023. DOI: https://doi.org/10.1145/3583131.3590346
+
 ## Installing
 
 This tool can be installed via [Cabal](https://www.haskell.org/cabal/) or [Stack](https://docs.haskellstack.org/en/stable/). The easiest way to install is via Haskell stack:
@@ -43,15 +47,15 @@ There are also binaries available at [releases](https://github.com/folivetti/pan
 ## Usage
 
 ```bash
-Usage: pandoc-symreg (-f|--from ['tir'|'hl'|'operon'|'bingo'])
+Usage: pandoc-symreg (-f|--from ['tir'|'hl'|'operon'|'bingo'|'gomea'|'pysr'|'sbp'|'eplex'])
                      (-t|--to ['python'|'math'|'tikz'|'latex']) 
                      [-i|--input INPUT] [-o|--output OUTPUT] 
-                     [-v|--varnames VARNAMES] [-p|--parameters]
+                     [-v|--varnames VARNAMES] [-p|--parameters] [--simplify]
 
   Convert different symbolic expressions format to common formats.
 
 Available options:
-  -f,--from ['tir'|'hl'|'operon'|'bingo']
+  -f,--from ['tir'|'hl'|'operon'|'bingo'|'gomea'|'pysr'|'sbp'|'eplex']
                            Input expression format
   -t,--to ['python'|'math'|'tikz'|'latex']
                            Output expression format
@@ -63,8 +67,8 @@ Available options:
                            assumes the default of each algorithm (e.g,
                            "x,y,epsilon"). (default: "")
   -p,--parameters          Convert floating point numbers to free parameters.
+  --simplify               Simplifies the expression using Equality Saturation.
   -h,--help                Show this help text
-
 ```
 
 ## Contributing

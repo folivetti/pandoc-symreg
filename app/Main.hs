@@ -80,7 +80,7 @@ opt = Args
         <> help "Convert floating point numbers to free parameters." )
     <*> switch
         ( long "simplify"
-        <> help "Apply basic simplification." )
+        <> help "Simplifies the expression using Equality Saturation." )
 
 main :: IO ()
 main = do
