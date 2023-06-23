@@ -10,6 +10,10 @@ and this project adheres to the
 
 - Added CI tests
 
+## 0.2.1.2 - 2023-06-23
+
+- Changed to new version of srtree-eqsat using a lightweight version of the simplification process
+
 ## 0.2.1.1 - 2023-05-26
 
 - Changed to optparse-applicative-0.18.0.0
