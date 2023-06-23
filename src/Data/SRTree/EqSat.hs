@@ -159,7 +159,7 @@ rewritesBasic =
       , ("x" - ("a" * "y")) := "x" + (negate "a" * "y") :| is_const "a" :| is_not_const "y"
       , (1 / "x") * (1 / "y") := 1 / ("x" * "y")
       -- AQ
-      , "x" / sqrt (1 + "y" ** 2) := "x" / "y"
+      , ("a" * "x") / sqrt (1 + ("b" * "y") ** 2) := ("a" / "b" * "x") / sqrt (1 + "y" ** 2) :| is_const "a" :| is_const "b"
    ]
 
 -- Rules for nonlinear functions
