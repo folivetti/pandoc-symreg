@@ -29,7 +29,10 @@ dependencies:
 - optparse-applicative >= 0.18 && < 0.19
 - mtl >= 2.2 && < 2.3
 - srtree >= 1.0.0.4 && < 1.1
-- srtree-eqsat
+- hegg
+- containers
+- deriving-compat
+- ieee754
 
 ghc-options:
 - -Wall
