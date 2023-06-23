@@ -45,7 +45,7 @@ extra-deps:
    - hegg-0.3.0.0
    - optparse-applicative-0.18.0.0
    - git: https://github.com/folivetti/srtree-eqsat
-     commit: 1aa6fecfbbcf54b89d0b03b7e3e0360027c02c82
+     commit: 02d10518cae592b59c8fdf2d999a75fedff9dfd7
 #  - srtree-0.1.2.1
 #  - git: https://github.com/folivetti/srtree.git                                                              
 #    commit: a8f1e29b53f8a307d05b893ada59474f08eca902
