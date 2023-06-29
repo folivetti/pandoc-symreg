@@ -107,7 +107,9 @@ cost :: CostFunction SRTree Int
 cost = \case
   Const _ -> 5
   Var _ -> 1
-  Bin _ c1 c2 -> c1 + c2 + 1
+  Bin Add c1 c2 -> c1 + c2 + 1
+  Bin Mul c1 c2 -> c1 + c2 + 1
+  Bin _ c1 c2 -> c1 + c2 + 2
   Uni _ c -> c + 1
   Param _ -> 5
 
@@ -228,8 +230,8 @@ rewriteTree :: (Analysis a l, Language l, Ord cost) => [Rewrite a l] -> Int -> I
 rewriteTree rules n coolOff c t = fst $ equalitySaturation' (BackoffScheduler n coolOff) t rules c
 
 rewriteAll, rewriteConst :: Fix SRTree -> Fix SRTree
-rewriteAll   = rewriteTree  (rewritesBasic <> constReduction <> constFusion <> rewritesFun) 500 30 cost
-rewriteConst = rewriteTree constReduction 100 10 cost
+rewriteAll   = rewriteTree  (rewritesBasic <> constReduction <> constFusion <> rewritesFun) 2500 30 cost
+rewriteConst = rewriteTree (rewritesBasic <> constReduction) 100 10 cost
 
 rewriteUntilNoChange :: [Fix SRTree -> Fix SRTree] -> Int -> Fix SRTree -> Fix SRTree
 rewriteUntilNoChange _ 0 t = t
