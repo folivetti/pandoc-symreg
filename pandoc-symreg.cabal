@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           pandoc-symreg
-version:        0.2.1.2
+version:        0.2.1.3
 synopsis:       A tool to convert symbolic regression expressions into different formats.
 description:    A pandoc-like cli tool and library to convert symbolic regression expressions to convenient formats
 category:       Text, Math
@@ -40,11 +40,11 @@ library
     , attoparsec-expr ==0.1.*
     , base >=4.7 && <5
     , bytestring ==0.11.*
-    , containers
-    , deriving-compat
-    , hegg
-    , ieee754
-    , mtl ==2.2.*
+    , containers >=0.6.5 && <0.7
+    , deriving-compat >=0.6.3 && <0.7
+    , hegg >=0.3.0 && <0.4
+    , ieee754 >=0.8.0 && <0.9
+    , mtl >=2.2 && <2.4
     , optparse-applicative ==0.18.*
     , srtree >=1.0.0.4 && <1.1
   default-language: Haskell2010
@@ -61,11 +61,11 @@ executable pandoc-symreg
     , attoparsec-expr ==0.1.*
     , base >=4.7 && <5
     , bytestring ==0.11.*
-    , containers
-    , deriving-compat
-    , hegg
-    , ieee754
-    , mtl ==2.2.*
+    , containers >=0.6.5 && <0.7
+    , deriving-compat >=0.6.3 && <0.7
+    , hegg >=0.3.0 && <0.4
+    , ieee754 >=0.8.0 && <0.9
+    , mtl >=2.2 && <2.4
     , optparse-applicative ==0.18.*
     , pandoc-symreg
     , srtree >=1.0.0.4 && <1.1
@@ -84,11 +84,11 @@ test-suite pandoc-symreg-test
     , attoparsec-expr ==0.1.*
     , base >=4.7 && <5
     , bytestring ==0.11.*
-    , containers
-    , deriving-compat
-    , hegg
-    , ieee754
-    , mtl ==2.2.*
+    , containers >=0.6.5 && <0.7
+    , deriving-compat >=0.6.3 && <0.7
+    , hegg >=0.3.0 && <0.4
+    , ieee754 >=0.8.0 && <0.9
+    , mtl >=2.2 && <2.4
     , optparse-applicative ==0.18.*
     , pandoc-symreg
     , srtree >=1.0.0.4 && <1.1

@@ -158,8 +158,6 @@ rewritesBasic =
       , ("x" - "a") := "x" + negate "a" :| is_const "a" :| is_not_const "x"
       , ("x" - ("a" * "y")) := "x" + (negate "a" * "y") :| is_const "a" :| is_not_const "y"
       , (1 / "x") * (1 / "y") := 1 / ("x" * "y")
-      -- AQ
-      , ("a" * "x") / sqrt (1 + ("b" * "y") ** 2) := ("a" / "b" * "x") / sqrt (1 + "y" ** 2) :| is_const "a" :| is_const "b"
    ]
 
 -- Rules for nonlinear functions
@@ -230,7 +228,7 @@ rewriteTree :: (Analysis a l, Language l, Ord cost) => [Rewrite a l] -> Int -> I
 rewriteTree rules n coolOff c t = fst $ equalitySaturation' (BackoffScheduler n coolOff) t rules c
 
 rewriteAll, rewriteConst :: Fix SRTree -> Fix SRTree
-rewriteAll   = rewriteTree  (rewritesBasic <> constReduction <> constFusion <> rewritesFun) 2500 30 cost
+rewriteAll   = rewriteTree  (rewritesBasic <> constReduction <> constFusion <> rewritesFun) 500 30 cost
 rewriteConst = rewriteTree constReduction 100 10 cost
 
 rewriteUntilNoChange :: [Fix SRTree -> Fix SRTree] -> Int -> Fix SRTree -> Fix SRTree

@@ -41,7 +41,7 @@ packages:
 #
 # extra-deps: []
 extra-deps:                                                                                                   
-   - srtree-1.0.0.4
+   - srtree-1.0.0.5
    - hegg-0.3.0.0
    - optparse-applicative-0.18.0.0
 #  - srtree-0.1.2.1

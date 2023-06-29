@@ -10,6 +10,10 @@ and this project adheres to the
 
 - Added CI tests
 
+## 0.2.1.3 - 2023-06-25
+
+- Changed `base` and `mtl` versions
+
 ## 0.2.1.2 - 2023-06-23
 
 - Changed to new version of srtree-eqsat using a lightweight version of the simplification process
