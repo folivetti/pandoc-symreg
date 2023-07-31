@@ -152,7 +152,7 @@ rewritesBasic =
       , ("x" + "y") + "z" := "x" + ("y" + "z")
       , ("x" * "y") * "z" := "x" * ("y" * "z")
       -- , "x" * ("y" / "z") := ("x" * "y") / "z"
-      , ("x" * "y") / "z" := "x" * ("y" / "z")
+      --, ("x" * "y") / "z" := "x" * ("y" / "z")
       -- distributive and factorization
       , "x" - ("y" + "z") := ("x" - "y") - "z"
       , "x" - ("y" - "z") := ("x" - "y") + "z"
@@ -210,6 +210,7 @@ constReduction = [
       , ("a" * "x") + ("b" * "y") := "a" * ("x" + ("b"/"a") * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y"
       , ("a" * "x") * ("b" * "y") := ("a" * "b") * ("x" * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y"
       , "a" / ("b" * "x") := ("a" / "b") / "x" :| is_const "a" :| is_const "b" :| is_not_const "x"
+      , ("a" * "x") / "y" := "a" * ("x" / "y") :| is_const "a" :| is_not_const "x" :| is_not_const "y"
     ]
 
 -- Rules that moves parameters to the outside and to the left
