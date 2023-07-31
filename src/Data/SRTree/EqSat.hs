@@ -207,7 +207,7 @@ constReduction = [
       , 0 - "x" := negate "x" :| is_not_const "x" 
       -- constant fusion
       , "c" * ("a" * "x" + "b" * "y") := ("a" * "c") * "x" + ("b" * "c") * "y" :| is_const "a" :| is_const "b" :| is_const "c" :| is_not_const "x" :| is_not_const "y"
-      , ("a" * "x") + ("b" * "y") := "a" * ("x" + ("b"/"a") * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y"
+      --, ("a" * "x") + ("b" * "y") := "a" * ("x" + ("b"/"a") * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y"
       , ("a" * "x") * ("b" * "y") := ("a" * "b") * ("x" * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y"
       , "a" / ("b" * "x") := ("a" / "b") / "x" :| is_const "a" :| is_const "b" :| is_not_const "x"
     ]
