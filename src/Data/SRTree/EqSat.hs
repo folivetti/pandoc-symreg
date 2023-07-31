@@ -108,8 +108,8 @@ cost = \case
   Const _ -> 5
   Var _ -> 1
   Bin Add c1 c2 -> c1 + c2 + 1
-  Bin Mul c1 c2 -> c1 + c2 + 1
-  Bin _ c1 c2 -> c1 + c2 + 2
+  Bin Mul c1 c2 -> c1 + c2 + 2
+  Bin _ c1 c2 -> c1 + c2 + 3
   Uni _ c -> c + 1
   Param _ -> 5
 
@@ -206,6 +206,8 @@ constReduction = [
       , "x" + negate "y" := "x" - "y" :| is_not_const "y"
       , 0 - "x" := negate "x" :| is_not_const "x" 
       -- constant fusion
+      , "c" * ("a" * "x" + "b" * "y") := ("a" * "c") * "x" + ("b" * "c") * "y" :| is_const "a" :| is_const "b" :| is_const "c" :| is_not_const "x" :| is_not_const "y"
+      , ("a" * "x") + ("b" * "y") := "a" * ("x" + ("b"/"a") * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y"
       , ("a" * "x") * ("b" * "y") := ("a" * "b") * ("x" * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y"
       , "a" / ("b" * "x") := ("a" / "b") / "x" :| is_const "a" :| is_const "b" :| is_not_const "x"
     ]
