@@ -30,6 +30,7 @@ import Data.IntMap.Strict qualified as IM
 import Data.Maybe (isJust, isNothing)
 import Data.Ord.Deriving ( deriveOrd1 )
 import Data.SRTree hiding (Fix(..))
+import Data.SRTree.Eval
 import Data.SRTree.Recursion qualified as R
 import Data.Set qualified as S
 import Text.Show.Deriving ( deriveShow1 )
@@ -105,13 +106,13 @@ instance Language SRTree
 
 cost :: CostFunction SRTree Int
 cost = \case
-  Const _ -> 5
-  Var _ -> 1
+  Const _       -> 5
+  Var   _       -> 1
   Bin Add c1 c2 -> c1 + c2 + 1
   Bin Mul c1 c2 -> c1 + c2 + 1
-  Bin _ c1 c2 -> c1 + c2 + 2
-  Uni _ c -> c + 1
-  Param _ -> 5
+  Bin _ c1 c2   -> c1 + c2 + 3
+  Uni _ c       -> c + 1
+  Param _       -> 5
 
 unsafeGetSubst :: Pattern SRTree -> Subst -> ClassId
 unsafeGetSubst (NonVariablePattern _) _ = error "unsafeGetSubst: NonVariablePattern; expecting VariablePattern"
@@ -188,7 +189,7 @@ constReduction = [
       , "x" + 0 := "x"
       , "x" - 0 := "x"
       --, 1 * "x" := "x"  -- this creates a loop, why?
-      , "x" * 1 := "x"
+      --, "x" * 1 := "x"
       , 0 * "x" := 0
       , "x" * 0 := 0
       , 0 / "x" := 0
