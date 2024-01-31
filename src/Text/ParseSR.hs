@@ -8,7 +8,7 @@ import qualified Data.ByteString.Char8 as B
 import Control.Applicative ( (<|>) )
 import qualified Data.SRTree.Print as P
 import Data.List ( sortOn )
-
+import Data.Char ( toLower )
 import Debug.Trace ( trace )
 import Data.SRTree
 
@@ -36,14 +36,14 @@ showOutput LATEX  = P.showLatex
 
 -- | Calls the corresponding parser for a given `SRAlgs`
 parseSR :: SRAlgs -> B.ByteString -> Bool -> B.ByteString -> Either String (Fix SRTree)
-parseSR HL     header reparam = eitherResult . (`feed` "") . parse (parseHL reparam $ splitHeader header) . putEOL . B.strip
-parseSR BINGO  header reparam = eitherResult . (`feed` "") . parse (parseBingo reparam $ splitHeader header) . putEOL . B.strip
-parseSR TIR    header reparam = eitherResult . (`feed` "") . parse (parseTIR reparam $ splitHeader header) . putEOL . B.strip
-parseSR OPERON header reparam = eitherResult . (`feed` "") . parse (parseOperon reparam $ splitHeader header) . putEOL . B.strip
-parseSR GOMEA  header reparam = eitherResult . (`feed` "") . parse (parseGOMEA reparam $ splitHeader header) . putEOL . B.strip
-parseSR SBP    header reparam = eitherResult . (`feed` "") . parse (parseGOMEA reparam $ splitHeader header) . putEOL . B.strip
-parseSR EPLEX  header reparam = eitherResult . (`feed` "") . parse (parseGOMEA reparam $ splitHeader header) . putEOL . B.strip
-parseSR PYSR   header reparam = eitherResult . (`feed` "") . parse (parsePySR reparam $ splitHeader header) . putEOL . B.strip
+parseSR HL     header reparam = eitherResult . (`feed` "") . parse (parseHL reparam $ splitHeader header) . putEOL . B.map toLower . B.strip
+parseSR BINGO  header reparam = eitherResult . (`feed` "") . parse (parseBingo reparam $ splitHeader header) . putEOL . B.map toLower . B.strip
+parseSR TIR    header reparam = eitherResult . (`feed` "") . parse (parseTIR reparam $ splitHeader header) . putEOL . B.map toLower . B.strip
+parseSR OPERON header reparam = eitherResult . (`feed` "") . parse (parseOperon reparam $ splitHeader header) . putEOL . B.map toLower . B.strip
+parseSR GOMEA  header reparam = eitherResult . (`feed` "") . parse (parseGOMEA reparam $ splitHeader header) . putEOL . B.map toLower . B.strip
+parseSR SBP    header reparam = eitherResult . (`feed` "") . parse (parseGOMEA reparam $ splitHeader header) . putEOL . B.map toLower . B.strip
+parseSR EPLEX  header reparam = eitherResult . (`feed` "") . parse (parseGOMEA reparam $ splitHeader header) . putEOL . B.map toLower . B.strip
+parseSR PYSR   header reparam = eitherResult . (`feed` "") . parse (parsePySR reparam $ splitHeader header) . putEOL . B.map toLower .  B.strip
 
 eitherResult' :: Show r => Result r -> Either String r
 eitherResult' res = trace (show res) $ eitherResult res
@@ -154,13 +154,13 @@ parseTIR = parseExpr (prefixOps : binOps) binFuns var
   where
     binFuns   = [ ]
     prefixOps = map (uncurry prefix)
-                [   ("Id", id), ("Abs", abs)
-                  , ("Sinh", sinh), ("Cosh", cosh), ("Tanh", tanh)
-                  , ("Sin", sin), ("Cos", cos), ("Tan", tan)
-                  , ("ASinh", asinh), ("ACosh", acosh), ("ATanh", atanh)
-                  , ("ASin", asin), ("ACos", acos), ("ATan", atan)
-                  , ("Sqrt", sqrt), ("Cbrt", cbrt), ("Square", (**2))
-                  , ("Log", log), ("Exp", exp)
+                [   ("id", id), ("abs", abs)
+                  , ("sinh", sinh), ("cosh", cosh), ("tanh", tanh)
+                  , ("sin", sin), ("cos", cos), ("tan", tan)
+                  , ("asinh", asinh), ("acosh", acosh), ("atanh", atanh)
+                  , ("asin", asin), ("acos", acos), ("atan", atan)
+                  , ("sqrt", sqrt), ("cbrt", cbrt), ("square", (**2))
+                  , ("log", log), ("exp", exp)
                 ]
     binOps = [[binary "^" (**) AssocLeft], [binary "**" (**) AssocLeft]
             , [binary "*" (*) AssocLeft, binary "/" (/) AssocLeft]
