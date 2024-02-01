@@ -79,11 +79,12 @@ parseExpr table binFuns var reparam header = do e <- relabelParams <$> expr
                         Left x  -> pure $ fromIntegral x
                         Right _ -> pure $ param 0
               else Fix . Const <$> signed double <?> "const"
+    header' = map (\(x,y) -> (B.map toLower x, y)) header
     varC = if null header
              then var
              else var <|> varHeader
 
-    varHeader        = choice $ map (uncurry getParserVar) $ sortOn (negate . B.length . fst) header
+    varHeader        = choice $ map (uncurry getParserVar) $ sortOn (negate . B.length . fst) header'
     getParserVar k v = (string k <|> enveloped k) >> pure (Fix $ Var v)
     enveloped s      = (char ' ' <|> char '(') >> string s >> (char ' ' <|> char ')') >> pure ""
 
