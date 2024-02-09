@@ -42,7 +42,7 @@ library
     , bytestring ==0.11.*
     , containers >=0.6.5 && <0.7
     , deriving-compat >=0.6.3 && <0.7
-    , hegg >=0.3.0 && <0.4
+    , hegg >=0.5.0 && <0.6
     , ieee754 >=0.8.0 && <0.9
     , mtl >=2.2 && <2.4
     , optparse-applicative ==0.18.*
@@ -63,7 +63,7 @@ executable pandoc-symreg
     , bytestring ==0.11.*
     , containers >=0.6.5 && <0.7
     , deriving-compat >=0.6.3 && <0.7
-    , hegg >=0.3.0 && <0.4
+    , hegg >=0.5.0 && <0.6
     , ieee754 >=0.8.0 && <0.9
     , mtl >=2.2 && <2.4
     , optparse-applicative ==0.18.*
@@ -86,7 +86,7 @@ test-suite pandoc-symreg-test
     , bytestring ==0.11.*
     , containers >=0.6.5 && <0.7
     , deriving-compat >=0.6.3 && <0.7
-    , hegg >=0.3.0 && <0.4
+    , hegg >=0.5.0 && <0.6
     , ieee754 >=0.8.0 && <0.9
     , mtl >=2.2 && <2.4
     , optparse-applicative ==0.18.*

@@ -18,7 +18,7 @@ import Control.Monad (unless)
 import Data.AEq ( AEq((~==)) )
 import Data.Eq.Deriving ( deriveEq1 )
 import Data.Equality.Analysis ( Analysis(..) )
-import Data.Equality.Graph ( EGraph, ClassId, Language, ENode(unNode), represent, merge )
+import Data.Equality.Graph ( ClassId, Language, ENode(unNode) )
 import Data.Equality.Graph.Lens hiding ((^.))
 import Data.Equality.Graph.Lens qualified as L
 import Data.Equality.Matching
@@ -34,10 +34,6 @@ import Data.SRTree.Eval
 import Data.SRTree.Recursion qualified as R
 import Data.Set qualified as S
 import Text.Show.Deriving ( deriveShow1 )
-import Data.Function ((&))
-
-
-import Debug.Trace ( traceShow )
 
 deriving instance Foldable SRTree
 deriving instance Traversable SRTree
@@ -84,27 +80,14 @@ instance Floating (Pattern SRTree) where
 instance Analysis (Maybe Double) SRTree where
     -- type Domain SRTreeF = Maybe Double
     makeA = evalConstant -- ((\c -> egr L.^._class c._data) <$> e)
-
-    joinA Nothing Nothing  = Nothing
-    joinA (Just a) Nothing = Just a
-    joinA Nothing (Just b) = Just b
-    joinA (Just a) (Just b)
-      | (abs (a-b) <= 1e-6 || a ~== b || (a == 0 && b == (-0)) || (a == (-0) && b == 0) ) = Just a
-      | isNaN a = Just a
-      | isNaN b = Just b
-      | otherwise = (error $ "Merged non-equal constants!" <> show a <> " " <> show b <> " " <> show (a==b))
-
-    modifyA cl eg0
-      = case eg0 L.^._class cl._data of
-          Nothing -> eg0
-          Just d  ->
-                -- Add constant as e-node
-            let (new_c,eg1) = represent (Fix (Const d)) eg0
-                (rep, eg2)  = merge cl new_c eg1
-                -- Prune all except leaf e-nodes
-            in if isNaN d
-                  then eg1 & _class new_c._nodes %~ S.filter (F.null .unNode)
-                  else eg2 & _class rep._nodes %~ S.filter (F.null .unNode)
+    joinA ma mb = do
+        a <- ma
+        b <- mb
+        !_ <- unless (abs (a-b) <= 1e-6 || a ~== b || (a == 0 && b == (-0)) || (a == (-0) && b == 0)) (error $ "Merged non-equal constants!" <> show a <> " " <> show b <> " " <> show (a==b))
+        pure a
+    modifyA cl = case cl L.^._data of
+                 Nothing -> (cl, [])
+                 Just d -> ((_nodes %~ S.filter (F.null .unNode)) cl, [Fix (Const d)])
 
 evalConstant :: SRTree (Maybe Double) -> Maybe Double
 evalConstant = \case
@@ -116,18 +99,20 @@ evalConstant = \case
     Bin Power e1 e2 -> liftA2 (**) e1 e2
     Uni f e1 -> evalFun f <$> e1
     Var _ -> Nothing
-    Const x -> if isNaN x then Nothing else Just x -- TODO: investigate why it cannot handle NaN
+    Const x -> Just x -- TODO: investigate why it cannot handle NaN
     Param _ -> Nothing
 
-cost :: CostFunction SRTree (Int, String)
+instance Language SRTree
+
+cost :: CostFunction SRTree Int
 cost = \case
-  Const x       -> (5, show x)
-  Var   v       -> (1, 'x':show v)
-  Bin Add c1 c2 -> (fst c1 + fst c2 + 1, "Add" <> snd c1 <> snd c2)
-  Bin Mul c1 c2 -> (fst c1 + fst c2 + 1, "Mul" <> snd c1 <> snd c2)
-  Bin op c1 c2   -> (fst c1 + fst c2 + 3, show op <> snd c1 <> snd c2)
-  Uni fun c       -> (2 * fst c + 1, show fun <> snd c)
-  Param _       -> (5, "Param")
+  Const _       -> 5
+  Var   _       -> 1
+  Bin Add c1 c2 -> c1 + c2 + 1
+  Bin Mul c1 c2 -> c1 + c2 + 1
+  Bin _ c1 c2   -> c1 + c2 + 3
+  Uni _ c       -> c + 1
+  Param _       -> 5
 
 unsafeGetSubst :: Pattern SRTree -> Subst -> ClassId
 unsafeGetSubst (NonVariablePattern _) _ = error "unsafeGetSubst: NonVariablePattern; expecting VariablePattern"
@@ -135,21 +120,14 @@ unsafeGetSubst (VariablePattern v) subst = case IM.lookup v subst of
       Nothing -> error "Searching for non existent bound var in conditional"
       Just class_id -> class_id
 
-all_not :: Double -> [Pattern SRTree] -> RewriteCondition (Maybe Double) SRTree
-all_not val vs subst egr =
-    all (\v -> egr L.^._class (unsafeGetSubst v subst)._data /= Just val) vs
-
-is_not_neg_const :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
-is_not_neg_const v1 subst egr =
-    (fmap (>=0) (egr L.^._class (unsafeGetSubst v1 subst)._data) == Just True)
+is_not_zero :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
+is_not_zero v subst egr =
+    egr L.^._class (unsafeGetSubst v subst)._data /= Just 0
 
 is_not_neg_consts :: Pattern SRTree -> Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
 is_not_neg_consts v1 v2 subst egr =
     (fmap (>=0) (egr L.^._class (unsafeGetSubst v1 subst)._data) == Just True) ||
-    (fmap (>=0) (egr L.^._class (unsafeGetSubst v2 subst)._data) == Just True) -- &&
-   -- ((fmap (<0) (egr L.^._class (unsafeGetSubst v1 subst)._data) == Just True) -- &&
-   --  (fmap (<0) (egr L.^._class (unsafeGetSubst v2 subst)._data) == Just True)
-   -- )
+    (fmap (>=0) (egr L.^._class (unsafeGetSubst v2 subst)._data) == Just True)
 
 is_negative :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
 is_negative v subst egr =
@@ -157,50 +135,41 @@ is_negative v subst egr =
 
 is_const :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
 is_const v subst egr =
-    case (egr L.^._class (unsafeGetSubst v subst)._data) of
-         Nothing -> False
-         Just x  -> not (isNaN x)
+    isJust (egr L.^._class (unsafeGetSubst v subst)._data)
 
 is_not_const :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
 is_not_const v subst egr =
     isNothing (egr L.^._class (unsafeGetSubst v subst)._data)
 
-is_not_nan :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
-is_not_nan v subst egr =
-  case egr L.^._class (unsafeGetSubst v subst)._data of
-       Nothing -> True
-       Just x  -> not (isNaN x)
-
 rewritesBasic :: [Rewrite (Maybe Double) SRTree]
 rewritesBasic =
     [   -- commutativity
-        "x" + "y" := "y" + "x" :| all_not 0 ["x", "y"]
-      , "x" * "y" := "y" * "x" :| all_not 0 ["x", "y"] :| all_not 1 ["x", "y"]
-      , "x" * "x" := "x" ** 2 :| is_not_const "x"
-      , ("x" ** "a") * "x" := "x" ** ("a" + 1) :| is_const "a"
+        "x" + "y" := "y" + "x"
+      , "x" * "y" := "y" * "x"
+      , "x" * "x" := "x" ** 2
+      , ("x" ** "a") * "x" := "x" ** ("a" + 1)
       , ("x" ** "a") * ("x" ** "b") := "x" ** ("a" + "b")
       -- associativity
-      , ("x" + "y") + "z" := "x" + ("y" + "z") :| all_not 0 ["x", "y", "z"]
-      , ("x" * "y") * "z" := "x" * ("y" * "z") :| all_not 0 ["x", "y", "z"] :| all_not 1 ["x", "y", "z"]
+      , ("x" + "y") + "z" := "x" + ("y" + "z")
+      , ("x" * "y") * "z" := "x" * ("y" * "z")
       -- , "x" * ("y" / "z") := ("x" * "y") / "z"
       --, ("x" * "y") / "z" := "x" * ("y" / "z")
       -- distributive and factorization
-      , "x" * ("y" + "z") := "x" * "y" + "x" * "z" :| all_not 0 ["x", "y", "z"] :| all_not 1 ["x"]
-      , ("x" * "y") + ("x" * "z") := "x" * ("y" + "z") :| all_not 1 ["x", "y", "z"]
-      , "x" - ("y" + "z") := ("x" - "y") - "z" :| all_not 0 ["x", "y", "z"]
-      , "x" - ("y" - "z") := ("x" - "y") + "z" :| all_not 0 ["x", "y", "z"]
-      , negate ("x" + "y") := negate "x" - "y" :| all_not 0 ["x", "y"]
-      --, ("x" - "a") := "x" + negate "a" :| is_const "a" :| is_not_const "x"
-      , ("x" - ("a" * "y")) := "x" + (negate "a" * "y") :| is_const "a" :| is_not_const "y" :| all_not 0 ["a"] :| all_not 1 ["a"]
-      , (1 / "x") * (1 / "y") := 1 / ("x" * "y") :| all_not 0 ["x", "y"] :| all_not 1 ["x", "y"]
+      , "x" - ("y" + "z") := ("x" - "y") - "z"
+      , "x" - ("y" - "z") := ("x" - "y") + "z"
+      , negate ("x" + "y") := negate "x" - "y"
+      , ("x" - "a") := "x" + negate "a" :| is_const "a" :| is_not_const "x"
+      , ("x" - ("a" * "y")) := "x" + (negate "a" * "y") :| is_const "a" :| is_not_const "y"
+      , (1 / "x") * (1 / "y") := 1 / ("x" * "y")
    ]
 
 -- Rules for nonlinear functions
 rewritesFun :: [Rewrite (Maybe Double) SRTree]
 rewritesFun = [
-        log ("x" * "y") := log "x" + log "y" :| is_not_neg_consts "x" "y" :| all_not 0 ["x", "y"] :| all_not 1 ["x", "y"]
-      , log ("x" / "y") := log "x" - log "y" :| is_not_neg_consts "x" "y" :| all_not 0 ["x", "y"] :| all_not 1 ["x", "y"]
-      , log ("x" ** "y") := "y" * log "x" :| is_not_neg_const "y" :| all_not 0 ["x", "y"] :| all_not 1 ["x", "y"]
+        log ("x" * "y") := log "x" + log "y" :| is_not_neg_consts "x" "x" :| is_not_zero "x" 
+      , "x" ** "a" * "x" ** "b" := "x" ** ("a" + "b")
+      , log ("x" / "y") := log "x" - log "y" :| is_not_neg_consts "x" "x" :| is_not_zero "x" 
+      , log ("x" ** "y") := "y" * log "x" :| is_not_neg_consts "y" "y" :| is_not_zero "y"
       , log (sqrt "x") := 0.5 * log "x" :| is_not_const "x"
       , log (exp "x") := "x" :| is_not_const "x"
       , exp (log "x") := "x" :| is_not_const "x"
@@ -209,40 +178,40 @@ rewritesFun = [
       , sqrt ("a" * ("x" - "y")) := sqrt (negate "a") * sqrt ("y" - "x") :| is_negative "a"
       , sqrt ("a" * ("b" + "y")) := sqrt (negate "a") * sqrt ("b" - "y") :| is_negative "a" :| is_negative "b"
       , sqrt ("a" / "x") := sqrt "a" / sqrt "x" :| is_not_neg_consts "a" "x"
-      , abs ("x" * "y") := abs "x" * abs "y" :| all_not 0 ["x", "y"] :| all_not 1 ["x", "y"] -- :| is_const "x"
+      , abs ("x" * "y") := abs "x" * abs "y" -- :| is_const "x"
     ]
 
 -- Rules that reduces redundant parameters
 constReduction :: [Rewrite (Maybe Double) SRTree]
 constReduction = [
       -- identities
-        0 + "x" := "x" :| is_not_const "x"
-      , "x" + 0 := "x" :| is_not_const "x"
-      , "x" - 0 := "x" :| is_not_const "x"
-      , 1 * "x" := "x" :| is_not_const "x"
-      , "x" * 1 := "x" :| is_not_const "x" -- this creates a loop, why?
-      , 0 * "x" := 0   :| is_not_const "x"
-      , "x" * 0 := 0   :| is_not_const "x"
-      , 0 / "x" := 0   :| is_not_const "x"
-      -- cancellations
-      , "x" - "x" := 0 :| is_not_const "x"
-      , "x" / "x" := 1 :| all_not 0 ["x"] :| is_not_const "x"
-      , "x" ** 1 := "x" :| is_not_const "x"
-      , 0 ** "x" := 0 :| is_not_const "x"
-      , 1 ** "x" := 1 :| is_not_const "x"
+        0 + "x" := "x"
+      , "x" + 0 := "x"
+      , "x" - 0 := "x"
+      --, 1 * "x" := "x"  -- this creates a loop, why?
+      --, "x" * 1 := "x"
+      , 0 * "x" := 0
+      , "x" * 0 := 0
+      , 0 / "x" := 0
+      -- cancellations 
+      , "x" - "x" := 0
+      , "x" / "x" := 1 :| is_not_zero "x"
+      , "x" ** 1 := "x"
+      , 0 ** "x" := 0
+      , 1 ** "x" := 1
       -- multiplication of inverse
-      , "x" * (1 / "x") := 1 :| all_not 0 ["x"] :| is_not_const "x"
-
+      , "x" * (1 / "x") := 1 :| is_not_zero "x"
+      , ("x" * "y") + ("x" * "z") := "x" * ("y" + "z")
       -- negate 
-      , "x" - ( (-1) * "y") := "x" + "y" :| is_not_const "y" :| is_not_const "x"
-      , "x" + negate "y" := "x" - "y" :| is_not_const "y" :| is_not_const "x"
-      , 0 - "x" := negate "x" :| is_not_const "x"
+      , "x" - ( (-1) * "y") := "x" + "y" :| is_not_const "y"
+      , "x" + negate "y" := "x" - "y" :| is_not_const "y"
+      , 0 - "x" := negate "x" :| is_not_const "x" 
       -- constant fusion
-      , "c" * ("a" * "x" + "b" * "y") := ("a" * "c") * "x" + ("b" * "c") * "y" :| is_const "a" :| is_const "b" :| is_const "c" :| is_not_const "x" :| is_not_const "y"
-      , ("a" * "x") + ("b" * "y") := "a" * ("x" + ("b"/"a") * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a"]
+      --, "c" * ("a" * "x" + "b" * "y") := ("a" * "c") * "x" + ("b" * "c") * "y" :| is_const "a" :| is_const "b" :| is_const "c" :| is_not_const "x" :| is_not_const "y"
+      , ("a" * "x") + ("b" * "y") := "a" * ("x" + ("b"/"a") * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y"
       , ("a" * "x") * ("b" * "y") := ("a" * "b") * ("x" * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y"
       , "a" / ("b" * "x") := ("a" / "b") / "x" :| is_const "a" :| is_const "b" :| is_not_const "x"
-     , ("a" * "x") / "y" := "a" * ("x" / "y") :| is_const "a" :| is_not_const "x" :| is_not_const "y"
+      , ("a" * "x") / "y" := "a" * ("x" / "y") :| is_const "a" :| is_not_const "x" :| is_not_const "y"
     ]
 
 -- Rules that moves parameters to the outside and to the left
@@ -261,7 +230,6 @@ constFusion = [
       , "x" / "a" - "b" / "y" := (1 / "a") * ("x" - "y" / ("b" * "a")) :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y"
       , ("a" * "x") / ("b" * "y") := ("a"/"b") * ("x"/"y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y"
     ]
-
 
 rewriteTree :: (Analysis a l, Language l, Ord cost) => [Rewrite a l] -> Int -> Int -> CostFunction l cost -> Fix l -> Fix l
 rewriteTree rules n coolOff c t = fst $ equalitySaturation' (BackoffScheduler n coolOff) t rules c

@@ -43,7 +43,7 @@ packages:
 extra-deps:                                                                                                   
    - git: https://github.com/folivetti/srtree.git                                                              
      commit: 7ce188bf5f1d752ae7da40a047c2dda5e75a64fe
-   - hegg-0.3.0.0
+   - hegg-0.5.0.0
    - optparse-applicative-0.18.0.0
 #  - srtree-0.1.2.1
 #  - git: https://github.com/folivetti/srtree.git                                                              

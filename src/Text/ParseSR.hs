@@ -36,14 +36,14 @@ showOutput LATEX  = P.showLatex
 
 -- | Calls the corresponding parser for a given `SRAlgs`
 parseSR :: SRAlgs -> B.ByteString -> Bool -> B.ByteString -> Either String (Fix SRTree)
-parseSR HL     header reparam = eitherResult . (`feed` "") . parse (parseHL reparam $ splitHeader header) . putEOL . B.map toLower . B.strip
-parseSR BINGO  header reparam = eitherResult . (`feed` "") . parse (parseBingo reparam $ splitHeader header) . putEOL . B.map toLower . B.strip
-parseSR TIR    header reparam = eitherResult . (`feed` "") . parse (parseTIR reparam $ splitHeader header) . putEOL . B.map toLower . B.strip
-parseSR OPERON header reparam = eitherResult . (`feed` "") . parse (parseOperon reparam $ splitHeader header) . putEOL . B.map toLower . B.strip
-parseSR GOMEA  header reparam = eitherResult . (`feed` "") . parse (parseGOMEA reparam $ splitHeader header) . putEOL . B.map toLower . B.strip
-parseSR SBP    header reparam = eitherResult . (`feed` "") . parse (parseGOMEA reparam $ splitHeader header) . putEOL . B.map toLower . B.strip
-parseSR EPLEX  header reparam = eitherResult . (`feed` "") . parse (parseGOMEA reparam $ splitHeader header) . putEOL . B.map toLower . B.strip
-parseSR PYSR   header reparam = eitherResult . (`feed` "") . parse (parsePySR reparam $ splitHeader header) . putEOL . B.map toLower .  B.strip
+parseSR HL     header reparam = eitherResult . (`feed` "") . parse (parseHL reparam $ splitHeader header) . putEOL . B.strip
+parseSR BINGO  header reparam = eitherResult . (`feed` "") . parse (parseBingo reparam $ splitHeader header) . putEOL . B.strip
+parseSR TIR    header reparam = eitherResult . (`feed` "") . parse (parseTIR reparam $ splitHeader header) . putEOL . B.strip
+parseSR OPERON header reparam = eitherResult . (`feed` "") . parse (parseOperon reparam $ splitHeader header) . putEOL . B.strip
+parseSR GOMEA  header reparam = eitherResult . (`feed` "") . parse (parseGOMEA reparam $ splitHeader header) . putEOL . B.strip
+parseSR SBP    header reparam = eitherResult . (`feed` "") . parse (parseGOMEA reparam $ splitHeader header) . putEOL . B.strip
+parseSR EPLEX  header reparam = eitherResult . (`feed` "") . parse (parseGOMEA reparam $ splitHeader header) . putEOL . B.strip
+parseSR PYSR   header reparam = eitherResult . (`feed` "") . parse (parsePySR reparam $ splitHeader header) . putEOL .  B.strip
 
 eitherResult' :: Show r => Result r -> Either String r
 eitherResult' res = trace (show res) $ eitherResult res
@@ -79,12 +79,11 @@ parseExpr table binFuns var reparam header = do e <- relabelParams <$> expr
                         Left x  -> pure $ fromIntegral x
                         Right _ -> pure $ param 0
               else Fix . Const <$> signed double <?> "const"
-    header' = map (\(x,y) -> (B.map toLower x, y)) header
     varC = if null header
              then var
              else var <|> varHeader
 
-    varHeader        = choice $ map (uncurry getParserVar) $ sortOn (negate . B.length . fst) header'
+    varHeader        = choice $ map (uncurry getParserVar) $ sortOn (negate . B.length . fst) header
     getParserVar k v = (string k <|> enveloped k) >> pure (Fix $ Var v)
     enveloped s      = (char ' ' <|> char '(') >> string s >> (char ' ' <|> char ')') >> pure ""
 
@@ -162,6 +161,13 @@ parseTIR = parseExpr (prefixOps : binOps) binFuns var
                   , ("asin", asin), ("acos", acos), ("atan", atan)
                   , ("sqrt", sqrt), ("cbrt", cbrt), ("square", (**2))
                   , ("log", log), ("exp", exp)
+                  , ("Id", id), ("Abs", abs)
+                  , ("Sinh", sinh), ("Cosh", cosh), ("Tanh", tanh)
+                  , ("Sin", sin), ("Cos", cos), ("Tan", tan)
+                  , ("ASinh", asinh), ("ACosh", acosh), ("ATanh", atanh)
+                  , ("ASin", asin), ("ACos", acos), ("ATan", atan)
+                  , ("Sqrt", sqrt), ("Cbrt", cbrt), ("Square", (**2))
+                  , ("Log", log), ("Exp", exp)
                 ]
     binOps = [[binary "^" (**) AssocLeft], [binary "**" (**) AssocLeft]
             , [binary "*" (*) AssocLeft, binary "/" (/) AssocLeft]
