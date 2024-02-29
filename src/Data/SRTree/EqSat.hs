@@ -90,9 +90,9 @@ instance Analysis (Maybe Double) SRTree where
     joinA (Just a) Nothing = Just a
     joinA Nothing (Just b) = Just b
     joinA (Just a) (Just b)
+      | isNaN a || isInfinite a = Just a
+      | isNaN b || isInfinite b = Just b
       | (abs (a-b) <= 1e-6 || a ~== b || (a == 0 && b == (-0)) || (a == (-0) && b == 0) ) = Just a
-      | isNaN a = Just a
-      | isNaN b = Just b
       | otherwise = (error $ "Merged non-equal constants!" <> show a <> " " <> show b <> " " <> show (a==b))
 
     modifyA cl eg0
@@ -111,14 +111,26 @@ instance Analysis (Maybe Double) SRTree where
 evalConstant :: SRTree (Maybe Double) -> Maybe Double
 evalConstant = \case
     -- Exception: Negative exponent: BinOp Pow e1 e2 -> liftA2 (^) e1 (round <$> e2 :: Maybe Integer)
-    Bin Div e1 e2 -> liftA2 (/) e1 e2
-    Bin Sub e1 e2 -> liftA2 (-) e1 e2
-    Bin Mul e1 e2 -> liftA2 (*) e1 e2
-    Bin Add e1 e2 -> liftA2 (+) e1 e2
-    Bin Power e1 e2 -> liftA2 (**) e1 e2
-    Uni f e1 -> evalFun f <$> e1
+    Bin Div e1 e2 -> case liftA2 (/) e1 e2 of
+                          Nothing -> Nothing
+                          Just y  -> if isNaN y || isInfinite y then Nothing else Just y
+    Bin Sub e1 e2 -> case liftA2 (-) e1 e2 of
+                          Nothing -> Nothing
+                          Just y  -> if isNaN y || isInfinite y then Nothing else Just y
+    Bin Mul e1 e2 -> case liftA2 (*) e1 e2 of
+                          Nothing -> Nothing
+                          Just y  -> if isNaN y || isInfinite y then Nothing else Just y
+    Bin Add e1 e2 -> case liftA2 (+) e1 e2 of
+                          Nothing -> Nothing
+                          Just y  -> if isNaN y || isInfinite y then Nothing else Just y
+    Bin Power e1 e2 -> case liftA2 (**) e1 e2 of
+                            Nothing -> Nothing
+                            Just y  -> if isNaN y || isInfinite y then Nothing else Just y
+    Uni f e1 -> case (evalFun f <$> e1) of
+                     Nothing -> Nothing
+                     Just y  -> if isNaN y || isInfinite y then Nothing else Just y
     Var _ -> Nothing
-    Const x -> if isNaN x then Nothing else Just x -- TODO: investigate why it cannot handle NaN
+    Const x -> if isNaN x || isInfinite x then Nothing else Just x -- TODO: investigate why it cannot handle NaN
     Param _ -> Nothing
 
 cost :: CostFunction SRTree (Int, String)
@@ -161,7 +173,7 @@ is_const :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
 is_const v subst egr =
     case (egr L.^._class (unsafeGetSubst v subst)._data) of
          Nothing -> False
-         Just x  -> not (isNaN x)
+         Just x  -> not (isNaN x) && not (isInfinite x)
 
 is_not_const :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
 is_not_const v subst egr =
@@ -171,7 +183,7 @@ is_not_nan :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
 is_not_nan v subst egr =
   case egr L.^._class (unsafeGetSubst v subst)._data of
        Nothing -> True
-       Just x  -> not (isNaN x)
+       Just x  -> not (isNaN x) && not (isInfinite x)
 
 has_no_term :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
 has_no_term v subst egr =
