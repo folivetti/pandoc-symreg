@@ -280,25 +280,25 @@ constReduction = [
       , "c" * ("a" * "x" + "b" * "y") := ("a" * "c") * "x" + ("b" * "c") * "y" :| is_const "a" :| is_const "b" :| is_const "c" :| is_not_const "x" :| is_not_const "y"
       , ("a" * "x") + ("b" * "y") := "a" * ("x" + ("b"/"a") * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a"]
       , ("a" * "x") * ("b" * "y") := ("a" * "b") * ("x" * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y"
-      , "a" / ("b" * "x") := ("a" / "b") / "x" :| is_const "a" :| is_const "b" :| is_not_const "x"
-     , ("a" * "x") / "y" := "a" * ("x" / "y") -- :| is_const "a" :| is_not_const "x" :| is_not_const "y"
+      , "a" / ("b" * "x") := ("a" / "b") / "x" :| is_const "a" :| is_const "b" :| is_not_const "x" :| all_not 0 ["b"]
+     , ("a" * "x") / "y" := "a" * ("x" / "y")  -- :| is_const "a" :| is_not_const "x" :| is_not_const "y"
     ]
 
 -- Rules that moves parameters to the outside and to the left
 constFusion :: [Rewrite (Maybe Double) SRTree]
 constFusion = [
-        "a" * "x" + "b" := "a" * ("x" + ("b" / "a")) :| is_const "a" :| is_const "b" :| is_not_const "x" :| all_not 0 ["a"]
-      , "a" * "x" + "b" / "y" := "a" * ("x" + ("b" / "a") / "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a"]
+      --  "a" * "x" + "b" := "a" * ("x" + ("b" / "a")) :| is_const "a" :| is_const "b" :| is_not_const "x" :| all_not 0 ["a"]
+       "a" * "x" + "b" / "y" := "a" * ("x" + ("b" / "a") / "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a"]
       , "a" * "x" - "b" / "y" := "a" * ("x" - ("b" / "a") / "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a"]
       , "x" / ("b" * "y") := (1 / "b") * "x" / "y" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["b"]
       , "x" / "a" + "b" := (1 / "a") * ("x" + ("b" * "a")) :| is_const "a" :| is_const "b" :| is_not_const "x" :| all_not 0 ["a"]
       , "x" / "a" - "b" := (1 / "a") * ("x" - ("b" * "a")) :| is_const "a" :| is_const "b" :| is_not_const "x" :| all_not 0 ["a"]
       , "b" - "x" / "a" := (1 / "a") * (("b" * "a") - "x") :| is_const "a" :| is_const "b" :| is_not_const "x" :| all_not 0 ["a"]
       , "x" / "a" + "b" * "y" := (1 / "a") * ("x" + ("b" * "a") * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a"]
-      , "x" / "a" + "y" / "b" := (1 / "a") * ("x" + "y" / ("b" * "a")) :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a"]
+      , "x" / "a" + "y" / "b" := (1 / "a") * ("x" + "y" / ("b" * "a")) :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a", "b"]
       , "x" / "a" - "b" * "y" := (1 / "a") * ("x" - ("b" * "a") * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a"]
-      , "x" / "a" - "b" / "y" := (1 / "a") * ("x" - "y" / ("b" * "a")) :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a"]
-     , ("a" * "x") / ("b" * "y") := ("a"/"b") * ("x"/"y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a"]
+      , "x" / "a" - "b" / "y" := (1 / "a") * ("x" - "y" / ("b" * "a")) :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a", "b"]
+     , ("a" * "x") / ("b" * "y") := ("a"/"b") * ("x"/"y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a", "b"]
     ]
 
 gabriel :: [Rewrite (Maybe Double) SRTree]
