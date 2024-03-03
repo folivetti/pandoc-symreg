@@ -97,15 +97,19 @@ instance Analysis (Maybe Double) SRTree where
 
     modifyA cl eg0
       = case eg0 L.^._class cl._data of
-          Nothing -> eg0
+          Nothing -> let ns = S.filter (F.null . unNode) $ eg0 L.^._class cl._nodes
+                      in if S.null ns
+                            then eg0
+                            else eg0 & _class cl._nodes %~ S.filter (F.null . unNode)
           Just d  ->
                 -- Add constant as e-node
-            let (new_c,eg1) = represent (Fix (Const d)) eg0
+            let (new_c, eg1) = represent (Fix (Const d)) eg0
                 (rep, eg2)  = merge cl new_c eg1
+                eg3 = eg2 & _class rep._nodes %~ S.filter (F.null . unNode)
                 -- Prune all except leaf e-nodes
             in if isNaN d
                   then eg1 & _class new_c._nodes %~ S.filter (F.null .unNode)
-                  else eg2 & _class rep._nodes %~ S.filter (F.null .unNode)
+                  else eg3
 
 
 evalConstant :: SRTree (Maybe Double) -> Maybe Double
