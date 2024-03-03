@@ -265,3 +265,100 @@ toEqFix = R.cata alg
     alg (Param ix) = Fix (Param ix)
     alg (Bin op l r) = Fix (Bin op l r)
     alg (Uni f t) = Fix (Uni f t)
+
+    {-
+
+  rewritesBasic :: [Rewrite (Maybe Double) SRTree]
+rewritesBasic =
+    [   -- commutativity
+        "x" + "y" := "y" + "x" :| has_no_loop "x" "y" -- :| all_not 0 ["x", "y"]
+      , "a" - "b" := "a" + (negate "b")
+      , "x" * "y" := "y" * "x" :| has_no_loop "x" "y" -- :| all_not 0 ["x", "y"] :| all_not 1 ["x", "y"]
+      , "x" * "x" := "x" ** 2 :| is_not_const "x"
+      , ("x" ** "a") * "x" := "x" ** ("a" + 1) :| is_const "a"
+      , ("x" ** "a") * ("x" ** "b") := "x" ** ("a" + "b")
+      -- associativity
+      , ("x" + "y") + "z" := "x" + ("y" + "z") -- :| all_not 0 ["x", "y", "z"]
+      , ("x" * "y") * "z" := "x" * ("y" * "z") -- :| all_not 0 ["x", "y", "z"] :| all_not 1 ["x", "y", "z"]
+      , "x" * ("y" / "z") := ("x" * "y") / "z"
+      , "x" * ("y" / "z") :=  "y" * ("x" / "z")
+      -- distributive and factorization
+      --, "x" * ("y" + "z") := "x" * "y" + "x" * "z" -- :| all_not 0 ["x", "y", "z"] :| all_not 1 ["x"]
+      , ("x" * "y") + ("x" * "z") := "x" * ("y" + "z")  -- :| all_not 1 ["x", "y", "z"]
+      , "x" - ("y" + "z") := ("x" - "y") - "z" -- :| all_not 0 ["x", "y", "z"]
+      , "x" - ("y" - "z") := ("x" - "y") + "z" -- :| all_not 0 ["x", "y", "z"]
+      , negate ("x" + "y") := negate "x" - "y" -- :| all_not 0 ["x", "y"]
+      --, ("x" - "a") := "x" + negate "a" :| is_const "a" :| is_not_const "x"
+      --, ("x" - ("a" * "y")) := "x" + (negate "a" * "y") -- :| is_const "a" :| is_not_const "y" :| all_not 0 ["a"] :| all_not 1 ["a"]
+      , ("a" / "x") * ("b" / "y") := ("a" * "b") / ("x" * "y") -- :| all_not 0 ["x", "y"] :| all_not 1 ["x", "y"]
+      , ("a" * "x") / ("c" * "y") := ("a" / "c") * ("x" / "y")
+   ]
+
+-- Rules for nonlinear functions
+rewritesFun :: [Rewrite (Maybe Double) SRTree]
+rewritesFun = [
+        log ("x" * "y") := log "x" + log "y" :| is_not_neg_consts "x" "y" :| all_not 0 ["x", "y"] :| all_not 1 ["x", "y"]
+      , log ("x" / "y") := log "x" - log "y" :| is_not_neg_consts "x" "y" :| all_not 0 ["x", "y"] :| all_not 1 ["x", "y"]
+      , log ("x" ** "y") := "y" * log "x" :| is_not_neg_const "y" :| all_not 0 ["x", "y"] :| all_not 1 ["x", "y"]
+      , log (sqrt "x") := 0.5 * log "x" :| is_not_const "x"
+      , log (exp "x") := "x" -- :| is_not_const "x"
+      , exp (log "x") := "x" -- :| is_not_const "x"
+      , "x" ** (1/2) := sqrt "x"
+      , sqrt ("a" * "x") := sqrt "a" * sqrt "x" :| is_not_neg_consts "a" "x"
+      , sqrt ("a" * ("x" - "y")) := sqrt (negate "a") * sqrt ("y" - "x") :| is_negative "a"
+      , sqrt ("a" * ("b" + "y")) := sqrt (negate "a") * sqrt ("b" - "y") :| is_negative "a" :| is_negative "b"
+      , sqrt ("a" / "x") := sqrt "a" / sqrt "x" :| is_not_neg_consts "a" "x"
+      , abs ("x" * "y") := abs "x" * abs "y" :| all_not 0 ["x", "y"] :| all_not 1 ["x", "y"] -- :| is_const "x"
+    ]
+
+-- Rules that reduces redundant parameters
+constReduction :: [Rewrite (Maybe Double) SRTree]
+constReduction = [
+      -- identities
+        0 + "x" := "x" :| is_not_const "x"
+      --, "x" + 0 := "x" :| is_not_const "x"
+      , "x" - 0 := "x" :| is_not_const "x"
+      , 1 * "x" := "x" :| is_not_const "x"
+      --, "x" * 1 := "x" :| is_not_const "x" -- this creates a loop, why?
+      , 0 * "x" := 0   :| is_not_const "x"
+      --, "x" * 0 := 0   :| is_not_const "x"
+      , 0 / "x" := 0   :| is_not_const "x"
+      -- cancellations
+      , "x" - "x" := 0 :| is_not_const "x"
+      , "x" / "x" := 1 :| all_not 0 ["x"] :| is_not_const "x"
+      , "x" ** 1 := "x" :| is_not_const "x"
+      , 0 ** "x" := 0 :| is_not_const "x"
+      , 1 ** "x" := 1 :| is_not_const "x"
+      -- multiplication of inverse
+      , "x" * (1 / "x") := 1 :| all_not 0 ["x"] :| is_not_const "x"
+
+      -- negate
+      --, "x" - ( (-1) * "y") := "x" + "y" :| is_not_const "y" :| is_not_const "x"
+      , "x" + negate "y" := "x" - "y" :| is_not_const "y" :| is_not_const "x"
+      , 0 - "x" := negate "x" :| is_not_const "x"
+    ]
+
+-- Rules that moves parameters to the outside and to the left
+constFusion :: [Rewrite (Maybe Double) SRTree]
+constFusion = [
+      -- this may generate loops as it is a subset of another rule
+      --  "a" * "x" + "b" := "a" * ("x" + ("b" / "a")) :| is_const "a" :| is_const "b" :| is_not_const "x" :| all_not 0 ["a"]
+      -- constant fusion
+        "c" * ("a" * "x" + "b" * "y") := ("a" * "c") * "x" + ("b" * "c") * "y" :| is_const "a" :| is_const "b" :| is_const "c" :| is_not_const "x" :| is_not_const "y"
+      , ("a" * "x") + ("b" * "y") := "a" * ("x" + ("b"/"a") * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a"]
+      , ("a" * "x") * ("b" * "y") := ("a" * "b") * ("x" * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y"
+      , "a" / ("b" * "x") := ("a" / "b") / "x" :| is_const "a" :| is_const "b" :| is_not_const "x" :| all_not 0 ["b"]
+      , ("a" * "x") / "y" := "a" * ("x" / "y")  -- :| is_const "a" :| is_not_const "x" :| is_not_const "y"
+      , "a" * "x" + "b" / "y" := "a" * ("x" + ("b" / "a") / "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a"]
+      , "a" * "x" - "b" / "y" := "a" * ("x" - ("b" / "a") / "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a"]
+      , "x" / ("b" * "y") := (1 / "b") * "x" / "y" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["b"]
+      , "x" / "a" + "b" := (1 / "a") * ("x" + ("b" * "a")) :| is_const "a" :| is_const "b" :| is_not_const "x" :| all_not 0 ["a"]
+      , "x" / "a" - "b" := (1 / "a") * ("x" - ("b" * "a")) :| is_const "a" :| is_const "b" :| is_not_const "x" :| all_not 0 ["a"]
+      , "b" - "x" / "a" := (1 / "a") * (("b" * "a") - "x") :| is_const "a" :| is_const "b" :| is_not_const "x" :| all_not 0 ["a"]
+      , "x" / "a" + "b" * "y" := (1 / "a") * ("x" + ("b" * "a") * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a"]
+      , "x" / "a" + "y" / "b" := (1 / "a") * ("x" + "y" / ("b" * "a")) :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a", "b"]
+      , "x" / "a" - "b" * "y" := (1 / "a") * ("x" - ("b" * "a") * "y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a"]
+      , "x" / "a" - "b" / "y" := (1 / "a") * ("x" - "y" / ("b" * "a")) :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a", "b"]
+     , ("a" * "x") / ("b" * "y") := ("a"/"b") * ("x"/"y") :| is_const "a" :| is_const "b" :| is_not_const "x" :| is_not_const "y" :| all_not 0 ["a", "b"]
+    ]
+    -}
