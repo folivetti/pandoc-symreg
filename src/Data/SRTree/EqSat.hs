@@ -6,6 +6,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
@@ -18,7 +19,7 @@ import Control.Monad (unless)
 import Data.AEq ( AEq((~==)) )
 import Data.Eq.Deriving ( deriveEq1 )
 import Data.Equality.Analysis ( Analysis(..) )
-import Data.Equality.Graph ( EGraph, ClassId, Language, ENode(unNode), represent, merge, find, children )
+import Data.Equality.Graph ( EGraph, ClassId, Language, ENode(unNode), represent, merge, find, children, rebuild )
 import Data.Equality.Graph.Lens hiding ((^.))
 import Data.Equality.Graph.Lens qualified as L
 import Data.Equality.Matching
@@ -111,31 +112,25 @@ instance Analysis (Maybe Double) SRTree where
                   then eg1 & _class new_c._nodes %~ S.filter (F.null .unNode)
                   else eg3
 
-
 evalConstant :: SRTree (Maybe Double) -> Maybe Double
 evalConstant = \case
     -- Exception: Negative exponent: BinOp Pow e1 e2 -> liftA2 (^) e1 (round <$> e2 :: Maybe Integer)
-    Bin Div e1 e2 -> case liftA2 (/) e1 e2 of
-                          Nothing -> Nothing
-                          Just y  -> if isNaN y || isInfinite y then Nothing else Just y
-    Bin Sub e1 e2 -> case liftA2 (-) e1 e2 of
-                          Nothing -> Nothing
-                          Just y  -> if isNaN y || isInfinite y then Nothing else Just y
-    Bin Mul e1 e2 -> case liftA2 (*) e1 e2 of
-                          Nothing -> Nothing
-                          Just y  -> if isNaN y || isInfinite y then Nothing else Just y
-    Bin Add e1 e2 -> case liftA2 (+) e1 e2 of
-                          Nothing -> Nothing
-                          Just y  -> if isNaN y || isInfinite y then Nothing else Just y
-    Bin Power e1 e2 -> case liftA2 (**) e1 e2 of
-                            Nothing -> Nothing
-                            Just y  -> if isNaN y || isInfinite y then Nothing else Just y
-    Uni f e1 -> case (evalFun f <$> e1) of
-                     Nothing -> Nothing
-                     Just y  -> if isNaN y || isInfinite y then Nothing else Just y
+    Bin Div (Just 0) _   -> Just 0
+    Bin Mul (Just 0) _   -> Just 0
+    Bin Mul _ (Just 0)   -> Just 0 
+    Bin Power _ (Just 0) -> Just 1
+
+    Bin Div e1 e2 -> liftA2 (/) e1 e2 >>= check
+    Bin Sub e1 e2 -> liftA2 (-) e1 e2 >>= check
+    Bin Mul e1 e2 -> liftA2 (*) e1 e2 >>= check
+    Bin Add e1 e2 -> liftA2 (+) e1 e2 >>= check
+    Bin Power e1 e2 -> liftA2 (**) e1 e2 >>= check
+    Uni f e1 -> e1 >>= check . evalFun f
     Var _ -> Nothing
-    Const x -> if isNaN x || isInfinite x then Nothing else Just x -- TODO: investigate why it cannot handle NaN
+    Const x -> Just x >>= check
     Param _ -> Nothing
+  where
+    check x = if isNaN x || isInfinite x then Nothing else Just x
 
 cost :: CostFunction SRTree (Int, String)
 cost = \case
@@ -153,47 +148,56 @@ unsafeGetSubst (VariablePattern v) subst = case IM.lookup v subst of
       Nothing -> error "Searching for non existent bound var in conditional"
       Just class_id -> class_id
 
+getValData v subst egr = egr L.^._class (unsafeGetSubst v subst)._data
+
 all_not :: Double -> [Pattern SRTree] -> RewriteCondition (Maybe Double) SRTree
 all_not val vs subst egr =
-    all (\v -> egr L.^._class (unsafeGetSubst v subst)._data /= Just val) vs
+    all (\v -> (getValData v subst egr) /= Just val) vs
 
 any_not_const :: [Pattern SRTree] -> RewriteCondition (Maybe Double) SRTree
 any_not_const vs subst egr =
-    any (\v -> egr L.^._class (unsafeGetSubst v subst)._data == Nothing) vs
+    any (\v -> (getValData v subst egr) == Nothing) vs
+all_not_const :: [Pattern SRTree] -> RewriteCondition (Maybe Double) SRTree
+all_not_const vs subst egr =
+    all (\v -> (getValData v subst egr) == Nothing) vs
+
+all_not_param :: [Pattern SRTree] -> RewriteCondition (Maybe Double) SRTree
+all_not_param vs subst egr =
+    all (\v -> (getValData v subst egr) == Nothing) vs
 
 is_not_neg_const :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
-is_not_neg_const v1 subst egr =
-    (fmap (>=0) (egr L.^._class (unsafeGetSubst v1 subst)._data) == Just True)
+is_not_neg_const v subst egr =
+    (fmap (>=0) ((getValData v subst egr)) == Just True)
 
 is_not_neg_consts :: Pattern SRTree -> Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
 is_not_neg_consts v1 v2 subst egr =
-    (fmap (>=0) (egr L.^._class (unsafeGetSubst v1 subst)._data) == Just True) ||
-    (fmap (>=0) (egr L.^._class (unsafeGetSubst v2 subst)._data) == Just True) -- &&
+    (fmap (>=0) ((getValData v1 subst egr)) == Just True) ||
+    (fmap (>=0) ((getValData v2 subst egr)) == Just True) -- &&
    -- ((fmap (<0) (egr L.^._class (unsafeGetSubst v1 subst)._data) == Just True) -- &&
    --  (fmap (<0) (egr L.^._class (unsafeGetSubst v2 subst)._data) == Just True)
    -- )
 
 is_negative :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
 is_negative v subst egr =
-    fmap (<0) (egr L.^._class (unsafeGetSubst v subst)._data) == Just True
+    fmap (<0) ((getValData v subst egr)) == Just True
 
 is_const :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
 is_const v subst egr =
-    case (egr L.^._class (unsafeGetSubst v subst)._data) of
+    case ((getValData v subst egr)) of
          Nothing -> False
          Just x  -> not (isNaN x) && not (isInfinite x)
 
 is_not_const :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
 is_not_const v subst egr =
-    isNothing (egr L.^._class (unsafeGetSubst v subst)._data)
+    isNothing ((getValData v subst egr))
 
 is_not_nan :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
 is_not_nan v subst egr =
-  case egr L.^._class (unsafeGetSubst v subst)._data of
+  case (getValData v subst egr) of
        Nothing -> True
        Just x  -> not (isNaN x) && not (isInfinite x)
 
-has_no_term :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
+has_no_term :: (Analysis a SRTree) => Pattern SRTree -> RewriteCondition a SRTree
 has_no_term v subst egr =
     any (is_term . unNode) (egr L.^._class (unsafeGetSubst v subst)._nodes)
   where
@@ -203,10 +207,26 @@ has_no_term v subst egr =
                     Const _ -> True
                     _ -> False
 
-is_not_same_var :: Pattern SRTree -> Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
+is_param :: (Analysis a SRTree) => Pattern SRTree -> RewriteCondition a SRTree
+is_param v subst egr =
+    any (is_term . unNode) (egr L.^._class (unsafeGetSubst v subst)._nodes)
+  where
+    is_term = \case
+                    Param _ -> True
+                    _ -> False
+
+any_no_param :: (Analysis a SRTree) => [Pattern SRTree] -> RewriteCondition a SRTree
+any_no_param vs subst egr =
+    any (\v -> any (is_term . unNode) (egr L.^._class (unsafeGetSubst v subst)._nodes)) vs
+  where
+    is_term = \case
+                    Param _ -> False
+                    _ -> True
+
+is_not_same_var :: (Analysis a SRTree) => Pattern SRTree -> Pattern SRTree -> RewriteCondition a SRTree
 is_not_same_var v1 v2 subst egr = find (unsafeGetSubst v1 subst) egr /= find (unsafeGetSubst v2 subst) egr
 
-has_no_loop :: Pattern SRTree -> Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
+has_no_loop :: (Analysis a SRTree) => Pattern SRTree -> Pattern SRTree -> RewriteCondition a SRTree
 has_no_loop v1 v2 subst egr =
     let cId1 = find (unsafeGetSubst v1 subst) egr 
         cId2 = find (unsafeGetSubst v2 subst) egr
@@ -219,80 +239,131 @@ has_no_loop v1 v2 subst egr =
     getChildren cid = concatMap children $ egr L.^._class cid . _nodes
     canon c = find c egr
 
-rewritesBasic :: [Rewrite (Maybe Double) SRTree]
-rewritesBasic =
-    [   -- commutativity
-        "x" + "y" := "y" + "x" :| has_no_loop "x" "y" :| any_not_const ["x", "y"]
-      --, "x" - "y" := "x" + (negate "y")  :| any_not_const ["x", "y"] :| has_no_loop "x" "y"
-      , "x" * "y" := "y" * "x" :| has_no_loop "x" "y" :| any_not_const ["x", "y"]
-      , "x" * "x" := "x" ** 2 :| is_not_const "x"
-      , ("x" ** "a") * "x" := "x" ** ("a" + 1) :| is_const "a" :| is_not_const "x"
-      , ("x" ** "a") * ("x" ** "b") := "x" ** ("a" + "b")  :| any_not_const ["x", "a", "b"]
-      -- associativity
-      , ("x" + "y") + "z" := "x" + ("y" + "z") :| any_not_const ["x", "y", "z"]
-      , ("x" + "y") - "z" := "x" + ("y" - "z") :| any_not_const ["x", "y", "z"]
-      , ("x" * "y") * "z" := "x" * ("y" * "z") :| any_not_const ["x", "y", "z"]
-      --, ("a" * "x") * ("b" * "y") := ("a" * "b") * ("x" * "y") :| any_not_const ["x", "y", "a", "b"]
-      --, "x" * ("y" / "z") := ("x" * "y") / "z" :| any_not_const ["x", "y", "z"]
-      --, ("x" * "y") / "z" := "x" * ("y" / "z")  :| any_not_const ["x", "y", "z"]
-      --, "x" * ("y" / "z") :=  "y" * ("x" / "z") :| any_not_const ["x", "y", "z"]
-      -- distributive and factorization
-      , ("x" * "y") + ("x" * "z") := "x" * ("y" + "z") :| any_not_const ["x", "y", "z"]
-      , "x" - ("y" + "z") := ("x" - "y") - "z" :| any_not_const ["x", "y", "z"]
-      , "x" - ("y" - "z") := ("x" - "y") + "z" :| any_not_const ["x", "y", "z"]
-      --, negate ("x" + "y") := negate "x" - "y" :| any_not_const ["x", "y"]
-      --, ("a" / "x") * ("b" / "y") := ("a" * "b") / ("x" * "y") :| any_not_const ["x", "y", "a", "b"] :| is_const "a" :| is_const "b"
-      , ("a" * "x") / ("b" * "y") := ("a" / "b") * ("x" / "y") :| any_not_const ["x", "y", "a", "b"] :| is_const "a" :| is_const "b"
-      --, "x" / ("y" * "z") := ("x" / "y") / "z" :| any_not_const ["x", "y", "z"]
-      , ("x" * "y") / "z" := ("x" / "z") * "y" :| any_not_const ["x", "y", "z"] :| is_const "x" :| is_const "z"
-      , ("x" * "y") / "x" := "y" :| any_not_const ["x", "y"]
-   ]
+not_too_high :: Pattern SRTree -> RewriteCondition (Maybe Double) SRTree
+--not_too_high v subst egr = snd (getValData v subst egr) <= 5
+not_too_high v subst egr =
+  let cId = find (unsafeGetSubst v subst) egr
+   in getHeight 0 cId
+  where
+    getTree cid = egr L.^._class cid
+    getChildren cid = concatMap children $ egr L.^._class cid . _nodes
+    canon c = find c egr
+    getHeight  n cid
+      | n >= 5    = False
+      | otherwise = foldr (\c acc -> acc && getHeight (n+1) (canon c)) True (getChildren cid)
 
--- Rules for nonlinear functions
-rewritesFun :: [Rewrite (Maybe Double) SRTree]
-rewritesFun = [
-        log ("x" * "y") := log "x" + log "y" :| is_not_neg_consts "x" "y" :| all_not 0 ["x", "y"] :| all_not 1 ["x", "y"]  :| any_not_const ["x", "y"]
-      , log ("x" / "y") := log "x" - log "y" :| is_not_neg_consts "x" "y" :| all_not 0 ["x", "y"] :| all_not 1 ["x", "y"] :| any_not_const ["x", "y"]
-      , log ("x" ** "y") := "y" * log "x" :| is_not_neg_const "y" :| all_not 0 ["x", "y"] :| all_not 1 ["x", "y"] :| any_not_const ["x", "y"]
-      , log (sqrt "x") := 0.5 * log "x" :| is_not_const "x"
-      , log (exp "x") := "x" :| is_not_const "x"
-      , exp (log "x") := "x" :| is_not_const "x"
-      , "x" ** (1/2) := sqrt "x" :| is_not_const "x"
-      , sqrt ("a" * "x") := sqrt "a" * sqrt "x" :| is_not_neg_consts "a" "x" :| any_not_const ["x", "a"]
-      , sqrt ("a" * ("x" - "y")) := sqrt (negate "a") * sqrt ("y" - "x") :| is_negative "a" :| any_not_const ["x", "y", "a"]
-      , sqrt ("a" * ("b" + "y")) := sqrt (negate "a") * sqrt ("b" - "y") :| is_negative "a" :| is_negative "b" :| any_not_const ["b", "y", "a"]
-      , sqrt ("a" / "x") := sqrt "a" / sqrt "x" :| is_not_neg_consts "a" "x" :| any_not_const ["x", "a"]
-      , abs ("x" * "y") := abs "x" * abs "y" :| all_not 0 ["x", "y"] :| all_not 1 ["x", "y"] :| any_not_const ["x", "y"]
+type ATree = Maybe Double
+
+rewriteBasic1 :: [Rewrite ATree SRTree]
+rewriteBasic1 = fmap (:| all_not_const ["x"])
+    [
+      "x" - "x" := 0
+    , "x" * 0   := 0
+    , "x" / "x" := 1 :| all_not 0 ["x"]
+    , "x" * 1   := "x"
+    , "x" + 0   := "x"
+    , "x" * "x" := "x" ** 2
+    ]
+
+rewriteBasic2 :: [Rewrite ATree SRTree]
+rewriteBasic2 = fmap (:| all_not_const ["x", "y"])
+    [
+      "x" * "y" := "y" * "x"
+    , "x" + "y" := "y" + "x"
+    , ("x" ** "y") * "x" := "x" ** ("y" + 1) :| is_const "y"
+    , ("x" * "y") / "x" := "y"
+    ]
+
+rewriteBasic3 :: [Rewrite ATree SRTree]
+rewriteBasic3 = fmap (:| all_not_const ["x", "y", "z"])
+    [
+      ("x" ** "y") * ("x" ** "z") := "x" ** ("y" + "z") 
+    , ("x" + "y") + "z" := "x" + ("y" + "z")
+    , ("x" + "y") - "z" := "x" + ("y" - "z")
+    , ("x" * "y") * "z" := "x" * ("y" * "z")
+    , ("x" * "y") + ("x" * "z") := "x" * ("y" + "z")
+    , "x" - ("y" + "z") := ("x" - "y") - "z"
+    , "x" - ("y" - "z") := ("x" - "y") + "z"
+    , ("x" * "y") / "z" := ("x" / "z") * "y"
+    ]
+
+rewriteBasic4 :: [Rewrite ATree SRTree]
+rewriteBasic4 =
+    [
+      ("w" * "x") / ("z" * "y") := ("w" / "z") * ("x" / "y") :| is_const "w" :| is_const "z"
+    ]
+
+rewritesFun1 :: [Rewrite ATree SRTree]
+rewritesFun1 = 
+    [
+      log (sqrt "x") := 0.5 * log "x"
+    , log (exp "x")  := "x"
+    , exp (log "x")  := "x"
+    , "x" ** (1/2)   := sqrt "x" 
+    ]
+
+rewritesFun2 :: [Rewrite ATree SRTree]
+rewritesFun2 = 
+    [
+      log ("x" * "y") := log "x" + log "y"
+    , log ("x" / "y") := log "x" - log "y"
+    , log ("x" ** "y") := "y" * log "x"
+    , sqrt ("y" * "x") := sqrt "y" * sqrt "x"
+    , sqrt ("y" / "x") := sqrt "y" / sqrt "x"
+    , abs ("x" * "y") := abs "x" * abs "y"
+    ]
+
+rewritesFun3 :: [Rewrite ATree SRTree]
+rewritesFun3 = 
+    [
+      sqrt ("z" * ("x" - "y")) := sqrt (negate "z") * sqrt ("y" - "x")
+    , sqrt ("z" * ("x" + "y")) := sqrt "z" * sqrt ("x" + "y")
     ]
 
 -- Rules that reduces redundant parameters
-constReduction :: [Rewrite (Maybe Double) SRTree]
-constReduction = [
-      -- identities
-        0 + "x" := "x" :| is_not_const "x"
-      , "x" - 0 := "x" :| is_not_const "x"
-      , 1 * "x" := "x" :| is_not_const "x"
-      , 0 * "x" := 0   :| is_not_const "x"
-      , 0 / "x" := 0   :| is_not_const "x"
-      -- cancellations
-      , "x" - "x" := 0 :| is_not_const "x"
-      , "x" / "x" := 1 :| all_not 0 ["x"] :| is_not_const "x"
-      , "x" ** 1 := "x" :| is_not_const "x"
-      , 0 ** "x" := 0 :| is_not_const "x"
-      , 1 ** "x" := 1 :| is_not_const "x"
-      -- multiplication of inverse
-      , "x" * (1 / "x") := 1 :| all_not 0 ["x"] :| is_not_const "x"
-      -- negate 
-      , "x" + negate "y" := "x" - "y" :| is_not_const "y"
-      , 0 - "x" := negate "x" :| is_not_const "x"
+constReduction1 :: [Rewrite ATree SRTree]
+constReduction1 = 
+    [
+      0 + "x" := "x"
+    , "x" - 0 := "x"
+    , 1 * "x" := "x"
+    , 0 * "x" := 0
+    , 0 / "x" := 0
+    , "x" - "x" := 0
+    , "x" / "x" := 1
+    , "x" ** 1 := "x"
+    , 0 ** "x" := 0
+    , 1 ** "x" := 1
+    , "x" * (1 / "x") := 1
+    , 0 - "x" := negate "x"
     ]
+
+constReduction2 :: [Rewrite ATree SRTree] 
+constReduction2 =
+    [
+      "x" + negate "y" := "x" - "y"
+    ]
+
+rewritesBasic0 :: [Rewrite (Maybe Double) SRTree]
+rewritesBasic0 =
+    [ 
+        "x" * "y" := "y" * "x" -- :| not_too_high "x" -- :| has_no_loop "x" "y" -- :| not_too_high "x" :| not_too_high "y"
+      , ("x" * "y") * "z" := "x" * ("y" * "z") -- :| any_not_const ["x", "y", "z"] -- :| not_too_high "x" :| not_too_high "y" :| not_too_high "z"
+      , "x" - "x" := 0
+      , "x" * 0 := 0
+
+    ]
+
+rewrites = concat [rewriteBasic1, rewriteBasic2, rewriteBasic3] -- , rewriteBasic4]
+rewritesConst = concat [rewriteBasic1, rewriteBasic2, rewriteBasic3, rewriteBasic4, constReduction1, constReduction2] 
 
 rewriteTree :: (Analysis a l, Language l, Ord cost) => [Rewrite a l] -> Int -> Int -> CostFunction l cost -> Fix l -> Fix l
 rewriteTree rules n coolOff c t = fst $ equalitySaturation' (BackoffScheduler n coolOff) t rules c
 
 rewriteAll, rewriteConst :: Fix SRTree -> Fix SRTree
-rewriteAll   = rewriteTree  (rewritesBasic <> constReduction <> rewritesFun) 5000 5 cost
-rewriteConst = rewriteTree (rewritesBasic <> constReduction) 100 10 cost
+--rewriteAll   = rewriteTree  (rewritesBasic <> constReduction <> rewritesFun) 2500 2 cost
+rewriteAll   = rewriteTree  rewrites 100 0 cost
+rewriteConst = rewriteTree rewritesConst 100 10 cost
 
 rewriteUntilNoChange :: [Fix SRTree -> Fix SRTree] -> Int -> Fix SRTree -> Fix SRTree
 rewriteUntilNoChange _ 0 t = t
@@ -303,7 +374,7 @@ rewriteUntilNoChange rs n t
 
 simplifyEqSat :: R.Fix SRTree -> R.Fix SRTree
 -- simplifyEqSat = relabelParams . fromEqFix . rewriteUntilNoChange [rewriteAll] 2 . rewriteConst . toEqFix
-simplifyEqSat = relabelParams . fromEqFix . rewriteAll . rewriteAll . rewriteAll . toEqFix
+simplifyEqSat = relabelParams . fromEqFix . rewriteAll . toEqFix
 --simplifyEqSat = relabelParams . fromEqFix . rewriteConst . toEqFix
 
 fromEqFix :: Fix SRTree -> R.Fix SRTree

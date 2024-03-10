@@ -29,10 +29,13 @@ dependencies:
 - optparse-applicative >= 0.18 && < 0.19
 - mtl >= 2.2 && < 2.4
 - srtree >= 1.0.0.4 && < 1.1
-- hegg >= 0.3.0 && < 0.4
+  #- hegg >= 0.5 && < 0.6
 - containers >= 0.6.5 && < 0.7
 - deriving-compat >= 0.6.3 && < 0.7
 - ieee754 >= 0.8.0 && < 0.9
+- transformers >= 0.6
+- text >= 2
+- graphviz
 
 ghc-options:
 - -Wall
@@ -57,6 +60,7 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -O2
     dependencies:
     - pandoc-symreg
 

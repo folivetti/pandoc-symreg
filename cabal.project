@@ -1,6 +1,0 @@
-packages: .
-
-source-repository-package
-    type: git
-    location: https://github.com/folivetti/srtree-eqsat.git
-    tag: 2aec71a15556738aa6a5e22bc0e47f8a09d7aca0

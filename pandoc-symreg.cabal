@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.36.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -27,6 +27,28 @@ source-repository head
 
 library
   exposed-modules:
+      Data.Equality.Analysis
+      Data.Equality.Analysis.Monadic
+      Data.Equality.Extraction
+      Data.Equality.Graph
+      Data.Equality.Graph.Classes
+      Data.Equality.Graph.Classes.Id
+      Data.Equality.Graph.Dot
+      Data.Equality.Graph.Internal
+      Data.Equality.Graph.Lens
+      Data.Equality.Graph.Monad
+      Data.Equality.Graph.Nodes
+      Data.Equality.Graph.ReprUnionFind
+      Data.Equality.Language
+      Data.Equality.Matching
+      Data.Equality.Matching.Database
+      Data.Equality.Matching.Pattern
+      Data.Equality.Saturation
+      Data.Equality.Saturation.Rewrites
+      Data.Equality.Saturation.Scheduler
+      Data.Equality.Utils
+      Data.Equality.Utils.IntToIntMap
+      Data.Equality.Utils.SizedList
       Data.SRTree.EqSat
       Text.ParseSR
       Text.ParseSR.IO
@@ -42,11 +64,13 @@ library
     , bytestring ==0.11.*
     , containers >=0.6.5 && <0.7
     , deriving-compat >=0.6.3 && <0.7
-    , hegg >=0.5.0 && <0.6
+    , graphviz
     , ieee754 >=0.8.0 && <0.9
     , mtl >=2.2 && <2.4
     , optparse-applicative ==0.18.*
     , srtree >=1.0.0.4 && <1.1
+    , text >=2
+    , transformers >=0.6
   default-language: Haskell2010
 
 executable pandoc-symreg
@@ -55,7 +79,7 @@ executable pandoc-symreg
       Paths_pandoc_symreg
   hs-source-dirs:
       app
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -fno-warn-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -fno-warn-unused-do-bind -threaded -rtsopts -with-rtsopts=-N -O2
   build-depends:
       attoparsec ==0.14.*
     , attoparsec-expr ==0.1.*
@@ -63,12 +87,14 @@ executable pandoc-symreg
     , bytestring ==0.11.*
     , containers >=0.6.5 && <0.7
     , deriving-compat >=0.6.3 && <0.7
-    , hegg >=0.5.0 && <0.6
+    , graphviz
     , ieee754 >=0.8.0 && <0.9
     , mtl >=2.2 && <2.4
     , optparse-applicative ==0.18.*
     , pandoc-symreg
     , srtree >=1.0.0.4 && <1.1
+    , text >=2
+    , transformers >=0.6
   default-language: Haskell2010
 
 test-suite pandoc-symreg-test
@@ -86,10 +112,12 @@ test-suite pandoc-symreg-test
     , bytestring ==0.11.*
     , containers >=0.6.5 && <0.7
     , deriving-compat >=0.6.3 && <0.7
-    , hegg >=0.5.0 && <0.6
+    , graphviz
     , ieee754 >=0.8.0 && <0.9
     , mtl >=2.2 && <2.4
     , optparse-applicative ==0.18.*
     , pandoc-symreg
     , srtree >=1.0.0.4 && <1.1
+    , text >=2
+    , transformers >=0.6
   default-language: Haskell2010
