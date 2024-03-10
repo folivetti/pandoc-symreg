@@ -9,6 +9,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
 
@@ -19,7 +20,7 @@ import Control.Monad (unless)
 import Data.AEq ( AEq((~==)) )
 import Data.Eq.Deriving ( deriveEq1 )
 import Data.Equality.Analysis ( Analysis(..) )
-import Data.Equality.Graph ( EGraph, ClassId, Language, ENode(unNode), represent, merge, find, children, rebuild )
+import Data.Equality.Graph ( EGraph, ClassId, Language, ENode(unNode), represent, merge, find, children, rebuild, emptyEGraph )
 import Data.Equality.Graph.Lens hiding ((^.))
 import Data.Equality.Graph.Lens qualified as L
 import Data.Equality.Matching
@@ -98,18 +99,19 @@ instance Analysis (Maybe Double) SRTree where
 
     modifyA cl eg0
       = case eg0 L.^._class cl._data of
-          Nothing -> let ns = S.filter (F.null . unNode) $ eg0 L.^._class cl._nodes
+          Nothing -> let ns = S.filter (null . children) $ eg0 L.^._class cl._nodes
                       in if S.null ns
                             then eg0
-                            else eg0 & _class cl._nodes %~ S.filter (F.null . unNode)
+                            else let eg1 = eg0 & _class cl._nodes %~ S.filter (null . children)
+                                 in traceShow (ns,eg0,eg1) eg1
           Just d  ->
                 -- Add constant as e-node
             let (new_c, eg1) = represent (Fix (Const d)) eg0
                 (rep, eg2)  = merge cl new_c eg1
-                eg3 = eg2 & _class rep._nodes %~ S.filter (F.null . unNode)
+                eg3 = eg2 & _class rep._nodes %~ S.filter (null . children)
                 -- Prune all except leaf e-nodes
             in if isNaN d
-                  then eg1 & _class new_c._nodes %~ S.filter (F.null .unNode)
+                  then eg1 & _class new_c._nodes %~ S.filter (null .children)
                   else eg3
 
 evalConstant :: SRTree (Maybe Double) -> Maybe Double
@@ -255,18 +257,13 @@ not_too_high v subst egr =
 type ATree = Maybe Double
 
 rewriteBasic1 :: [Rewrite ATree SRTree]
-rewriteBasic1 = fmap (:| all_not_const ["x"])
+rewriteBasic1 = --fmap (:| all_not_const ["x"])
     [
-      "x" - "x" := 0
-    , "x" * 0   := 0
-    , "x" / "x" := 1 :| all_not 0 ["x"]
-    , "x" * 1   := "x"
-    , "x" + 0   := "x"
-    , "x" * "x" := "x" ** 2
+      "x" * "x" := "x" ** 2
     ]
 
 rewriteBasic2 :: [Rewrite ATree SRTree]
-rewriteBasic2 = fmap (:| all_not_const ["x", "y"])
+rewriteBasic2 = -- fmap (:| all_not_const ["x", "y"])
     [
       "x" * "y" := "y" * "x"
     , "x" + "y" := "y" + "x"
@@ -275,7 +272,7 @@ rewriteBasic2 = fmap (:| all_not_const ["x", "y"])
     ]
 
 rewriteBasic3 :: [Rewrite ATree SRTree]
-rewriteBasic3 = fmap (:| all_not_const ["x", "y", "z"])
+rewriteBasic3 = -- fmap (:| all_not_const ["x", "y", "z"])
     [
       ("x" ** "y") * ("x" ** "z") := "x" ** ("y" + "z") 
     , ("x" + "y") + "z" := "x" + ("y" + "z")
@@ -328,9 +325,9 @@ constReduction1 =
     , "x" - 0 := "x"
     , 1 * "x" := "x"
     , 0 * "x" := 0
-    , 0 / "x" := 0
+    , 0 / "x" := 0 :| all_not 0 ["x"]
     , "x" - "x" := 0
-    , "x" / "x" := 1
+    , "x" / "x" := 1 :| all_not 0 ["x"]
     , "x" ** 1 := "x"
     , 0 ** "x" := 0
     , 1 ** "x" := 1
@@ -354,7 +351,7 @@ rewritesBasic0 =
 
     ]
 
-rewrites = concat [rewriteBasic1, rewriteBasic2, rewriteBasic3] -- , rewriteBasic4]
+rewrites = concat [rewriteBasic1, rewriteBasic2, rewriteBasic3, constReduction1, constReduction2]--, rewriteBasic4]
 rewritesConst = concat [rewriteBasic1, rewriteBasic2, rewriteBasic3, rewriteBasic4, constReduction1, constReduction2] 
 
 rewriteTree :: (Analysis a l, Language l, Ord cost) => [Rewrite a l] -> Int -> Int -> CostFunction l cost -> Fix l -> Fix l
@@ -374,7 +371,7 @@ rewriteUntilNoChange rs n t
 
 simplifyEqSat :: R.Fix SRTree -> R.Fix SRTree
 -- simplifyEqSat = relabelParams . fromEqFix . rewriteUntilNoChange [rewriteAll] 2 . rewriteConst . toEqFix
-simplifyEqSat = relabelParams . fromEqFix . rewriteAll . toEqFix
+simplifyEqSat t = traceShow (represent (toEqFix t) emptyEGraph :: (ClassId, EGraph ATree SRTree)) $ (relabelParams . fromEqFix . rewriteAll . toEqFix) t
 --simplifyEqSat = relabelParams . fromEqFix . rewriteConst . toEqFix
 
 fromEqFix :: Fix SRTree -> R.Fix SRTree
